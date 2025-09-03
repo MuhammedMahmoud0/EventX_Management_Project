@@ -1,0 +1,19 @@
+.add-event {
+    background-color: #282828;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* equivalent to gap-3 */
+    color: white;
+    font-weight: 600; /* equivalent to font-semibold */
+    padding-top: 0.5rem; /* py-2 */
+    padding-bottom: 0.5rem;
+    padding-left: 1rem; /* px-4 */
+    padding-right: 1rem;
+    border-radius: 0.5rem; /* equivalent to rounded */
+    transition: background-color 0.2s ease;
+}
+
+.add-event:hover {
+    background-color: #4b5563; /* Tailwind's gray-600 */
+}
