@@ -19,7 +19,11 @@ const app = express();
 app.use(cors());
 app.use(
     cors({
-        origin: ["http://localhost:5173", "http://localhost:3000"], // Add your frontend URLs
+        origin: [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://event-x-management-project.vercel.app",
+        ], // Add your frontend URLs
         credentials: true,
     })
 );
