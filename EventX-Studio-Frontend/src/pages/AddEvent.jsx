@@ -5,9 +5,9 @@ import Sidebar from "../global/Sidebar";
 import Button from "../components/common/Button";
 import { createEvent } from "../services/eventService";
 import { useNavigate } from "react-router-dom";
-import TimePicker from "react-time-picker";
-import "react-time-picker/dist/TimePicker.css"; // ✅ styles
-import "react-clock/dist/Clock.css"; // ✅ required styles
+// import TimePicker from "react-time-picker";
+// import "react-time-picker/dist/TimePicker.css"; // ✅ styles
+// import "react-clock/dist/Clock.css"; // ✅ required styles
 
 function AddEvent() {
     const [formData, setFormData] = useState({
@@ -87,27 +87,23 @@ function AddEvent() {
                     className="block w-full p-2 border rounded"
                     required
                 />
-                <TimePicker
-                    onChange={(value) =>
-                        setFormData({ ...formData, time: value })
-                    }
+                <input
+                    name="time"
+                    type="text"
+                    onChange={handleChange}
                     value={formData.time}
-                    disableClock
+                    placeholder="15:00  ==  3:00 PM"
                     className="block w-full p-2 border rounded"
                     required
-                    clearIcon={null}
-                    locale="en-US"
                 />
-                <TimePicker
-                    onChange={(value) =>
-                        setFormData({ ...formData, timeEnd: value })
-                    }
+                <input
+                    name="timeEnd"
+                    type="text"
+                    onChange={handleChange}
                     value={formData.timeEnd}
-                    disableClock
+                    placeholder="00:00  ==  12:00 AM"
                     className="block w-full p-2 border rounded"
                     required
-                    // clearIcon={null}
-                    locale="en-US"
                 />
                 <textarea
                     name="description"
