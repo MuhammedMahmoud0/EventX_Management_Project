@@ -18,7 +18,7 @@
 ## Video Demo
 Check out a quick demo of the application:
 
-[Click here to watch the demo video](./assets/videos/video.mkv)
+[Click here to watch the demo video](./assets/video/video.mkv)
 *Replace `YOUR_VIDEO_ID` with your YouTube video ID.*
 
 ---
