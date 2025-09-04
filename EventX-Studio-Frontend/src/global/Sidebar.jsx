@@ -95,17 +95,23 @@ const Sidebar = () => {
                         />
                         <span>Booking & Tickets</span>
                     </li>
-                    <li
-                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
-                        onClick={() => navigate("/attendee-insights")}
-                    >
-                        <img
-                            src="/assets/sidebar/Collaborating In Circle.svg"
-                            alt=""
-                            className="w-8 h-8"
-                        />
-                        <span>Attendee Insights</span>
-                    </li>
+                    {isAdmin && (
+                        <li
+                            className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                            onClick={() => {
+                                isAdmin
+                                    ? navigate("/attendee-insights")
+                                    : navigate("/attendee-insights/:id");
+                            }}
+                        >
+                            <img
+                                src="/assets/sidebar/Collaborating In Circle.svg"
+                                alt=""
+                                className="w-8 h-8"
+                            />
+                            <span>Attendee Insights</span>
+                        </li>
+                    )}
                     {isAdmin && (
                         <li
                             className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"

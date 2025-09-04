@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { getEvents } from "../../services/eventService"; // Adjust import path as needed
 
 // Single Event Card
 const EventItem = ({ icon, title, date }) => {
@@ -10,7 +11,6 @@ const EventItem = ({ icon, title, date }) => {
                 alt={title}
                 className="w-10 h-10 rounded-full object-cover"
             />
-
             {/* Text */}
             <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-800">
@@ -24,7 +24,11 @@ const EventItem = ({ icon, title, date }) => {
 
 // Main Card
 const UpcomingEvents = () => {
-    const events = [
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Default fallback events (your original data)
+    const defaultEvents = [
         {
             icon: "../assets/events/cynosure.png",
             title: "Cynosure Festival",
@@ -52,6 +56,60 @@ const UpcomingEvents = () => {
         },
     ];
 
+    useEffect(() => {
+        const fetchUpcomingEvents = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch upcoming events (you might want to add filters for upcoming events)
+                const response = await getEvents({
+                    limit: 5,
+                    upcoming: true, // assuming your API supports this filter
+                    sortBy: "date",
+                    sortOrder: "asc",
+                });
+
+                // Transform API data to match component format
+                const formattedEvents = response.map((event) => ({
+                    icon:
+                        event.image ||
+                        event.icon ||
+                        "../assets/events/default.png", // fallback icon
+                    title: event.name || event.title || "Untitled Event",
+                    date: formatDate(event.date) || "TBD",
+                }));
+
+                // Take only first 5 events
+                setEvents(formattedEvents.slice(0, 5));
+            } catch (error) {
+                console.error("Error fetching upcoming events:", error);
+                // Use default events as fallback
+                setEvents(defaultEvents);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUpcomingEvents();
+    }, []);
+
+    // Format date function
+    const formatDate = (dateString) => {
+        if (!dateString) return "";
+
+        const date = new Date(dateString);
+        const options = {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        };
+
+        return date.toLocaleDateString("en-GB", options);
+    };
+
+    // Show loading state or default events while loading
+    const displayEvents = loading ? defaultEvents : events;
+
     return (
         <div className="bg-gray-50 rounded-2xl shadow-md px-3 py-2 w-90">
             {/* Header */}
@@ -68,7 +126,7 @@ const UpcomingEvents = () => {
 
             {/* Events List */}
             <div className="flex flex-col gap-3">
-                {events.map((event, index) => (
+                {displayEvents.map((event, index) => (
                     <EventItem
                         key={index}
                         icon={event.icon}

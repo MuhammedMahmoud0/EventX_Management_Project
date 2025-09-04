@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import {
     Edit3,
     MapPin,
@@ -12,23 +11,66 @@ import {
     Eye,
     Tag,
 } from "lucide-react";
+import { getEvent, updateEvent } from "../../services/eventService"; // Adjust import path as needed
+import { getUserRole } from "../../utils/authUtils";
 
 const EventDetails = () => {
     const navigate = useNavigate();
-    const { id } = useParams(); // get event ID from URL
+    const { id } = useParams(); // Get event ID from URL parameters
     const [isEditing, setIsEditing] = useState(false);
-    const [eventData, setEventData] = useState(null); // start null for loading
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [eventData, setEventData] = useState({
+        name: "",
+        date: "",
+        venue: "",
+        time: "",
+        description: "",
+        ticketPrice: "",
+        seatAmount: "",
+        availableSeats: "",
+        popularity: "",
+        expectedAttendance: "",
+        tags: "",
+    });
 
+    // Fetch event data on component mount
     useEffect(() => {
-        const fetchEvent = async () => {
+        const fetchEventData = async () => {
             try {
-                const response = await axios.get(`/api/events/${id}`);
-                setEventData(response.data); // populate state with API data
-            } catch (error) {
-                console.error("Error fetching event data:", error);
+                setLoading(true);
+                setError(null);
+                const event = await getEvent(id);
+
+                // Map API response to component state structure
+                setEventData({
+                    name: event.name || event.title || "",
+                    date: event.date || "",
+                    venue: event.venue || event.location || "",
+                    time: event.time || "",
+                    description: event.description || "",
+                    ticketPrice: event.ticketPrice || event.price || "",
+                    seatAmount: event.seatAmount || event.totalSeats || "",
+                    availableSeats: event.availableSeats || "",
+                    popularity: event.popularity || "",
+                    expectedAttendance:
+                        event.expectedAttendance || event.capacity || "",
+                    tags: event.tags || "",
+                });
+            } catch (err) {
+                console.error("Error fetching event:", err);
+                setError("Failed to load event details. Please try again.");
+            } finally {
+                setLoading(false);
             }
         };
-        fetchEvent();
+
+        if (id) {
+            fetchEventData();
+        } else {
+            setLoading(false);
+            setError("No event ID provided");
+        }
     }, [id]);
 
     const handleInputChange = (field, value) => {
@@ -38,8 +80,44 @@ const EventDetails = () => {
         }));
     };
 
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+
+            // Prepare data for API - map back to expected API format
+            const updateData = {
+                name: eventData.name,
+                date: eventData.date,
+                venue: eventData.venue,
+                time: eventData.time,
+                description: eventData.description,
+                ticketPrice: eventData.ticketPrice,
+                seatAmount: parseInt(eventData.seatAmount) || 0,
+                availableSeats: parseInt(eventData.availableSeats) || 0,
+                popularity: eventData.popularity,
+                expectedAttendance: eventData.expectedAttendance,
+                tags: eventData.tags,
+            };
+
+            await updateEvent(id, updateData);
+            setIsEditing(false);
+
+            // Show success message (you can implement a toast/notification system)
+            alert("Event updated successfully!");
+        } catch (err) {
+            console.error("Error updating event:", err);
+            alert("Failed to update event. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const toggleEdit = () => {
-        setIsEditing(!isEditing);
+        if (isEditing) {
+            handleSave();
+        } else {
+            setIsEditing(true);
+        }
     };
 
     const seatData = Array.from({ length: 80 }, (_, i) => {
@@ -61,7 +139,33 @@ const EventDetails = () => {
         );
     };
 
-    if (!eventData) return <div className="p-10">Loading event details...</div>;
+    if (loading) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-white rounded-2xl">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading event details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-white rounded-2xl">
+                <div className="text-center">
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button
+                        onClick={() => navigate("/events")}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                    >
+                        Back to Events
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    const isAdmin = getUserRole() === "admin";
 
     return (
         <div className="w-full h-full p-10 bg-white rounded-2xl">
@@ -98,7 +202,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.name || ""}
+                            value={eventData.name}
                             onChange={(e) =>
                                 handleInputChange("name", e.target.value)
                             }
@@ -115,7 +219,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="date"
-                            value={eventData.date || ""}
+                            value={eventData.date}
                             onChange={(e) =>
                                 handleInputChange("date", e.target.value)
                             }
@@ -138,7 +242,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.venue || ""}
+                            value={eventData.venue}
                             onChange={(e) =>
                                 handleInputChange("venue", e.target.value)
                             }
@@ -155,7 +259,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.time || ""}
+                            value={eventData.time}
                             onChange={(e) =>
                                 handleInputChange("time", e.target.value)
                             }
@@ -173,7 +277,7 @@ const EventDetails = () => {
                     Event Description
                 </label>
                 <textarea
-                    value={eventData.description || ""}
+                    value={eventData.description}
                     onChange={(e) =>
                         handleInputChange("description", e.target.value)
                     }
@@ -192,7 +296,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.ticketPrice || ""}
+                            value={eventData.ticketPrice}
                             onChange={(e) =>
                                 handleInputChange("ticketPrice", e.target.value)
                             }
@@ -211,7 +315,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.seatAmount || ""}
+                            value={eventData.seatAmount}
                             onChange={(e) =>
                                 handleInputChange("seatAmount", e.target.value)
                             }
@@ -228,7 +332,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.availableSeats || ""}
+                            value={eventData.availableSeats}
                             onChange={(e) =>
                                 handleInputChange(
                                     "availableSeats",
@@ -248,7 +352,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.popularity || ""}
+                            value={eventData.popularity}
                             onChange={(e) =>
                                 handleInputChange("popularity", e.target.value)
                             }
@@ -307,7 +411,7 @@ const EventDetails = () => {
                         <div className="relative">
                             <input
                                 type="text"
-                                value={eventData.tags || ""}
+                                value={eventData.tags}
                                 onChange={(e) =>
                                     handleInputChange("tags", e.target.value)
                                 }
@@ -326,7 +430,7 @@ const EventDetails = () => {
                         <div className="relative">
                             <input
                                 type="text"
-                                value={eventData.expectedAttendance || ""}
+                                value={eventData.expectedAttendance}
                                 onChange={(e) =>
                                     handleInputChange(
                                         "expectedAttendance",
@@ -363,12 +467,19 @@ const EventDetails = () => {
 
                     {/* Action Buttons */}
                     <div className="flex space-x-3 mt-auto">
-                        <button
-                            onClick={toggleEdit}
-                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-                        >
-                            {isEditing ? "SAVE" : "EDIT"}
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={toggleEdit}
+                                disabled={loading}
+                                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                {loading
+                                    ? "SAVING..."
+                                    : isEditing
+                                    ? "SAVE"
+                                    : "EDIT"}
+                            </button>
+                        )}
                         <button
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
                             onClick={() => navigate(`/attendee-insights/${id}`)}

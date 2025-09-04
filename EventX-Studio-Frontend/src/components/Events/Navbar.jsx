@@ -7,6 +7,7 @@ import {
     Filter,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getUserRole } from "../../utils/authUtils";
 
 const EventManagementHeader = () => {
     const navigate = useNavigate();
@@ -14,6 +15,7 @@ const EventManagementHeader = () => {
     const [filter, setFilter] = useState("Filter");
     const [sort, setSort] = useState("Status");
     const [date, setDate] = useState("");
+    const isAdmin = getUserRole() === "admin";
 
     return (
         <div className="flex justify-between items-start w-393 bg-white rounded-t-2xl shadow-md p-6 mt-2 mb-6 -mx-6">
@@ -24,22 +26,30 @@ const EventManagementHeader = () => {
                 </h2>
                 <div className="flex space-x-3">
                     {/* New Event Button */}
-                    <button
-                        className="flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50"
-                        onClick={() => navigate("/add-event")}
-                    >
-                        <PlusCircle className="w-4 h-4 mr-2" />
-                        New Event
-                    </button>
+                    {isAdmin && (
+                        <button
+                            className="flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50"
+                            onClick={() => navigate("/add-event")}
+                        >
+                            <PlusCircle className="w-4 h-4 mr-2" />
+                            New Event
+                        </button>
+                    )}
 
                     {/* Attendee Insights Dropdown */}
-                    <button
-                        className="flex items-center px-4 py-2 border border-orange-400 text-orange-500 rounded-xl hover:bg-orange-50"
-                        onClick={() => navigate("/attendee-insights")}
-                    >
-                        Attendee Insights
-                        <ChevronDown className="w-4 h-4 ml-2" />
-                    </button>
+                    {isAdmin && (
+                        <button
+                            className="flex items-center px-4 py-2 border border-orange-400 text-orange-500 rounded-xl hover:bg-orange-50"
+                            onClick={() => {
+                                isAdmin
+                                    ? navigate("/attendee-insights")
+                                    : navigate("/attendee-insights/:id");
+                            }}
+                        >
+                            Attendee Insights
+                            <ChevronDown className="w-4 h-4 ml-2" />
+                        </button>
+                    )}
                 </div>
             </div>
 

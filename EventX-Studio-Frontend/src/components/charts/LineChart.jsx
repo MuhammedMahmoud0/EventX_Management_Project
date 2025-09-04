@@ -11,7 +11,7 @@ import {
 
 const DashLineChart = ({
     data = [],
-    timeFrame = "Weekly",
+    timeFrame = "Daily",
     currency = "LKR",
 }) => {
     if (!data.length) return <p>No sales data</p>;
