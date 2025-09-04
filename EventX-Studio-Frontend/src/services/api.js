@@ -4,7 +4,7 @@ const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     headers: { "Content-Type": "application/json" },
 });
-console.log(import.meta.env.VITE_API_KEY);
+console.log(import.meta.env.VITE_API_URL);
 
 // add token to every request automatically
 api.interceptors.request.use(
