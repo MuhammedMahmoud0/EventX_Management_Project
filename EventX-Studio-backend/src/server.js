@@ -23,6 +23,17 @@ app.use(
             "https://https://event-x-management-project-isy9.vercel.app",
         ],
         credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allowedHeaders: [
+            "Origin",
+            "X-Requested-With",
+            "Content-Type",
+            "Accept",
+            "Authorization",
+            "Cache-Control",
+            "X-Access-Token",
+        ],
+        optionsSuccessStatus: 200, // For legacy browser suppor
     })
 );
 
