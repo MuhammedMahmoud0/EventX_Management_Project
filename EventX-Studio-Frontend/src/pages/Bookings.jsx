@@ -59,10 +59,12 @@ const Bookings = () => {
         const seats = [];
         const aCount = Math.floor(totalSeats * 0.2);
         const bCount = Math.floor(totalSeats * 0.3);
-        const dCount = totalSeats - aCount - bCount;
+        const cCount = Math.floor(totalSeats * 0.3);
+        const dCount = totalSeats - aCount - bCount - cCount;
 
         for (let i = 1; i <= aCount; i++) seats.push(`A${i}`);
         for (let i = 1; i <= bCount; i++) seats.push(`B${i}`);
+        for (let i = 1; i <= cCount; i++) seats.push(`C${i}`);
         for (let i = 1; i <= dCount; i++) seats.push(`D${i}`);
 
         return seats;
