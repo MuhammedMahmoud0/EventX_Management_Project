@@ -5,28 +5,20 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     base: "/",
-    headers: [
-        {
-            source: "/api/(.*)",
+    build: {
+        outDir: "dist",
+        assetsDir: "assets",
+        sourcemap: false,
+    },
 
-            headers: [
-                {
-                    key: "Access-Control-Allow-Origin",
-                    value: "https://app.example",
-                },
-
-                {
-                    key: "Access-Control-Allow-Methods",
-                    value: "GET, POST, OPTIONS",
-                },
-
-                {
-                    key: "Access-Control-Allow-Headers",
-                    value: "Content-Type, Authorization",
-                },
-
-                { key: "Access-Control-Allow-Credentials", value: "true" },
-            ],
+    // Only use proxy in development
+    server: {
+        proxy: {
+            "/api": {
+                target: "https://event-x-management-project-u38r-o3ug5n74d.vercel.app",
+                changeOrigin: true,
+                secure: true,
+            },
         },
-    ],
+    },
 });
