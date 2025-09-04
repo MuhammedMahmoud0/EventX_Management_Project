@@ -20,7 +20,7 @@ app.use(
     cors({
         origin: [
             "http://localhost:5173",
-            "https://https://event-x-management-project-isy9.vercel.app",
+            "https://event-x-management-project-isy9.vercel.app",
         ],
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
