@@ -5,6 +5,9 @@ import Sidebar from "../global/Sidebar";
 import Button from "../components/common/Button";
 import { createEvent } from "../services/eventService";
 import { useNavigate } from "react-router-dom";
+import TimePicker from "react-time-picker";
+import "react-time-picker/dist/TimePicker.css"; // ✅ styles
+import "react-clock/dist/Clock.css"; // ✅ required styles
 
 function AddEvent() {
     const [formData, setFormData] = useState({
@@ -84,21 +87,27 @@ function AddEvent() {
                     className="block w-full p-2 border rounded"
                     required
                 />
-                <input
-                    name="time"
-                    type="time"
-                    onChange={handleChange}
-                    placeholder="Start Time (e.g., 09:00 PM)"
+                <TimePicker
+                    onChange={(value) =>
+                        setFormData({ ...formData, time: value })
+                    }
+                    value={formData.time}
+                    disableClock
                     className="block w-full p-2 border rounded"
                     required
+                    clearIcon={null}
+                    locale="en-US"
                 />
-                <input
-                    name="timeEnd"
-                    type="time"
-                    onChange={handleChange}
-                    placeholder="End Time (e.g., 05:00 AM)"
+                <TimePicker
+                    onChange={(value) =>
+                        setFormData({ ...formData, timeEnd: value })
+                    }
+                    value={formData.timeEnd}
+                    disableClock
                     className="block w-full p-2 border rounded"
                     required
+                    // clearIcon={null}
+                    locale="en-US"
                 />
                 <textarea
                     name="description"

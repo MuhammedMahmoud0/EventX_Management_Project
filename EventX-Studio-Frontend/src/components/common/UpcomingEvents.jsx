@@ -6,11 +6,7 @@ const EventItem = ({ icon, title, date }) => {
     return (
         <div className="flex items-center bg-white rounded-xl shadow-sm p-3 space-x-3">
             {/* Icon */}
-            <img
-                src={icon}
-                alt={title}
-                className="w-10 h-10 rounded-full object-cover"
-            />
+            <img src={icon} className="w-10 h-10 rounded-full object-cover" />
             {/* Text */}
             <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-800">

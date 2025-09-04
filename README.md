@@ -18,8 +18,7 @@
 ## Video Demo
 Check out a quick demo of the application:
 
-[![Watch the video](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://youtu.be/YOUR_VIDEO_ID)
-
+[Click here to watch the demo video](./assets/videos/video.mvk)
 *Replace `YOUR_VIDEO_ID` with your YouTube video ID.*
 
 ---
