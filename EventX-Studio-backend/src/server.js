@@ -17,18 +17,31 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors());
+const allowedOrigins = [
+    "http://localhost:5173", // Vite dev server
+    "https://your-frontend-vercel-url.vercel.app", // frontend production URL
+];
 
-const corsOptions = {
-    origin: [
-        "http://localhost:5173", // Vite dev server
-        "http://localhost:3000", // Alternative dev port
-        "https://your-frontend-domain.vercel.app", // Add your production frontend URL when deployed
-    ],
-    credentials: true,
-    optionsSuccessStatus: 200, // For legacy browser support
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-};
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            // allow requests with no origin (like mobile apps, Postman)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.indexOf(origin) === -1) {
+                const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+                return callback(new Error(msg), false);
+            }
+            return callback(null, true);
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        optionsSuccessStatus: 200,
+    })
+);
+
+// Handle OPTIONS preflight requests
+app.options("*", cors());
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
