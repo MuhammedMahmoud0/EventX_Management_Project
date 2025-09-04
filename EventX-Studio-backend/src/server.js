@@ -32,6 +32,7 @@ app.use(
             "Authorization",
             "Cache-Control",
             "X-Access-Token",
+            "Access-Control-Allow-Origin",
         ],
         optionsSuccessStatus: 200, // For legacy browser suppor
     })
