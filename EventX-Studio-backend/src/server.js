@@ -16,7 +16,7 @@ const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
-app.use(cors());
+// app.use(cors());
 const allowedOrigins = [
     "http://localhost:5173", // Vite dev server
     "https://your-frontend-vercel-url.vercel.app", // frontend production URL
