@@ -1,6 +1,17 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getMyProfile } from "../services/userService";
 
 const Header = () => {
+    const navigate = useNavigate();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        getMyProfile()
+            .then((data) => setUser(data))
+            .catch(console.error);
+    }, []);
+
     return (
         <header className="bg-black rounded-2xl px-6 py-4 flex items-center justify-between shadow-md border border-gray-200 mx-0 my-6">
             {/* Left: Profile + Welcome */}
@@ -12,9 +23,13 @@ const Header = () => {
                 />
                 <div>
                     <h1 className="text-2xl font-bold text-white">
-                        Welcome Rusiru De Silva
+                        Welcome {user ? user.name : "User"}
                     </h1>
-                    <p className="text-sm text-white">System Administrator</p>
+                    <p className="text-sm text-white">
+                        {user?.role === "admin"
+                            ? "System Administrator"
+                            : "User"}
+                    </p>
                 </div>
             </div>
 
@@ -33,10 +48,16 @@ const Header = () => {
                 </div>
 
                 {/* Icons */}
-                <button className="p-2 rounded-full hover:bg-gray-100 transition bg-white">
+                <button
+                    className="p-2 rounded-full hover:bg-gray-100 transition bg-white"
+                    onClick={() => navigate("/notifications")}
+                >
                     <img src="/assets/header/Notification.svg" alt="" />
                 </button>
-                <button className="p-2 rounded-full hover:bg-gray-100 transition bg-white">
+                <button
+                    className="p-2 rounded-full hover:bg-gray-100 transition bg-white"
+                    onClick={() => navigate("/events")}
+                >
                     <img src="/assets/header/Event Accepted.svg" alt="" />
                 </button>
             </div>

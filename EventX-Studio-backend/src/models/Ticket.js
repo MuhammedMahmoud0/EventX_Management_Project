@@ -32,7 +32,7 @@ const ticketSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-ticketSchema.index({ userId: 1, eventId: 1 });
+// ticketSchema.index({ userId: 1, eventId: 1 });
 ticketSchema.index({ eventId: 1, seatNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model("Ticket", ticketSchema);

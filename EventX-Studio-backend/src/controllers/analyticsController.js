@@ -1,12 +1,16 @@
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
-// const mongoose = require("mongoose");
+const mongoose = require("mongoose");
+
+// Fix 1: analyticsController.js - Add missing import and fix deprecated method
 
 exports.getDashboard = async (req, res, next) => {
     try {
         const eventsCount = await Event.countDocuments();
         const bookingsCount = await Ticket.countDocuments();
+
+        // IMPROVED: Calculate actual revenue from tickets
         const revenueResult = await Ticket.aggregate([
             {
                 $lookup: {
@@ -17,7 +21,16 @@ exports.getDashboard = async (req, res, next) => {
                 },
             },
             { $unwind: "$event" },
-            { $group: { _id: null, total: { $sum: "$event.ticketPrice" } } }, // Changed from price to ticketPrice
+            {
+                $group: {
+                    _id: null,
+                    total: {
+                        $sum: {
+                            $ifNull: ["$price", "$event.ticketPrice"], // Use ticket price if available, fallback to event price
+                        },
+                    },
+                },
+            },
         ]);
         const revenue = revenueResult[0]?.total || 0;
 
@@ -40,7 +53,8 @@ exports.getAttendees = async (req, res, next) => {
     const { eventId } = req.query;
 
     let match = {};
-    if (eventId) match.eventId = mongoose.Types.ObjectId(eventId);
+    if (eventId) match.eventId = new mongoose.Types.ObjectId(eventId);
+    { $match: { eventId: new mongoose.Types.ObjectId(eventId) } }
 
     try {
         const pipeline = [
@@ -64,12 +78,12 @@ exports.getAttendees = async (req, res, next) => {
                 },
             },
         ];
-        console.log("Pipeline Stages:", pipeline); // Log the pipeline
+        // console.log("Pipeline Stages:", pipeline); // Log the pipeline
         const attendees = await Ticket.aggregate(pipeline);
-        console.log(
-            "Raw Attendees Data:",
-            await Ticket.aggregate([...pipeline.slice(0, -1)])
-        ); // Log before grouping
+        // console.log(
+        //     "Raw Attendees Data:",
+        //     await Ticket.aggregate([...pipeline.slice(0, -1)])
+        // ); // Log before grouping
         res.json(attendees[0] || {});
     } catch (err) {
         next(err);

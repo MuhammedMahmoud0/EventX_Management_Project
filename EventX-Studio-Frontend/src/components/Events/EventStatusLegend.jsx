@@ -8,7 +8,7 @@ const EventStatusLegend = () => {
     ];
 
     return (
-        <div className="flex justify-between px-20 mb-4">
+        <div className="flex justify-between px-28 mb-4">
             {statuses.map((status, index) => (
                 <div key={index} className="flex items-center space-x-3">
                     <span

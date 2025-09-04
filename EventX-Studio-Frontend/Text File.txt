@@ -1,0 +1,2926 @@
+/main.js:
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+/app.jsx:
+import React from "react";
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    Navigate,
+} from "react-router-dom";
+// import Navbar from "./components/common/Navbar";
+// import Footer from "./components/common/Footer";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import AdminDashboard from "./pages/AdminDashboard";
+import UserEvent from "./pages/UserEvent";
+import Notifications from "./pages/Notifications";
+// import EventList from "./pages/EventList";
+import EventDetailsPage from "./pages/EventDetailsPage";
+import AllAttendeeInsights from "./pages/AllAttendeeInsights";
+// import MyTickets from "./pages/MyTickets";
+// import Analytics from "./pages/Analytics";
+import { isAuthenticated, getUserRole } from "./utils/authUtils";
+import SingleEventAttendeeInsights from "./pages/SingleEventAttendeeInsights";
+
+const PrivateRoute = ({ children, role }) => {
+    if (!isAuthenticated()) return <Navigate to="/login" replace />;
+    if (role && getUserRole() !== role)
+        return <div className="p-6">Forbidden</div>;
+    return children;
+};
+
+const App = () => (
+    <Router>
+        {/* <Navbar /> */}
+        <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+                path="/admin/dashboard"
+                element={
+                    <PrivateRoute role="admin">
+                        <AdminDashboard />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/events"
+                element={
+                    <PrivateRoute>
+                        <UserEvent />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/events/:id"
+                element={
+                    <PrivateRoute>
+                        <EventDetailsPage />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/attendee-insights/"
+                element={
+                    <PrivateRoute>
+                        <AllAttendeeInsights />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/attendee-insights/:id"
+                element={
+                    <PrivateRoute>
+                        <SingleEventAttendeeInsights />
+                    </PrivateRoute>
+                }
+            />
+
+            {/* <Route
+                path="/my-tickets"
+                element={
+                    <PrivateRoute>
+                        <MyTickets />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/analytics"
+                element={
+                    <PrivateRoute role="admin">
+                        <Analytics />
+                    </PrivateRoute>
+                }
+            /> */}
+            <Route
+                path="/"
+                element={
+                    !isAuthenticated() ? (
+                        <Navigate to="/login" />
+                    ) : getUserRole() === "admin" ? (
+                        <Navigate to="/admin/dashboard" />
+                    ) : (
+                        <Navigate to="/events" />
+                    )
+                }
+            />
+            <Route
+                path="/notifications"
+                element={
+                    <PrivateRoute role="admin">
+                        <Notifications />
+                    </PrivateRoute>
+                }
+            />
+        </Routes>
+        {/* <Footer /> */}
+    </Router>
+);
+
+export default App;
+/index.css:
+@import "tailwindcss";
+body {
+    @apply md:bg-white text-black;
+}
+/components/auth/LoginForm.jsx:
+import React, { useState } from "react";
+import { login } from "../../services/authService";
+import Button from "../common/Button";
+import { jwtDecode } from "jwt-decode";
+
+const LoginForm = ({ onSuccess, onError }) => {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const data = await login({ email, password });
+            if (data?.token) {
+                localStorage.setItem("token", data.token);
+                const role =
+                    data?.user?.role ||
+                    jwtDecode(data.token)?.user?.role ||
+                    "user";
+                onSuccess(role);
+            } else {
+                onError("No token received");
+            }
+        } catch (err) {
+            console.error(err);
+            onError(err.response?.data?.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+                className="block w-full p-2 border rounded"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+                className="block w-full p-2 border rounded"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button type="submit" variant="primary" className="w-full">
+                {loading ? "Signing in..." : "Login"}
+            </Button>
+        </form>
+    );
+};
+
+export default LoginForm;
+/components/auth/RegisterForm.jsx:
+import React, { useState } from "react";
+import { register } from "../../services/authService";
+import Button from "../common/Button";
+import { useNavigate } from "react-router-dom";
+
+const RegisterForm = () => {
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        password: "",
+        role: "user",
+        age: "",
+        gender: "",
+        location: "",
+        interests: "",
+    });
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+
+    const handleChange = (e) =>
+        setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        try {
+            await register({
+                ...form,
+                age: Number(form.age),
+                interests: form.interests
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+            });
+            navigate("/login");
+        } catch (err) {
+            setError(err.response?.data?.message || "Registration failed");
+            console.error(err);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-3">
+            {error && <div className="text-sm text-red-500">{error}</div>}
+            <input
+                name="name"
+                placeholder="Name"
+                value={form.name}
+                onChange={handleChange}
+                className="block w-full p-2 border rounded"
+            />
+            <input
+                name="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={handleChange}
+                className="block w-full p-2 border rounded"
+            />
+            <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={handleChange}
+                className="block w-full p-2 border rounded"
+            />
+            <div className="grid grid-cols-2 gap-2">
+                <input
+                    name="age"
+                    placeholder="Age"
+                    value={form.age}
+                    onChange={handleChange}
+                    className="p-2 border rounded"
+                />
+                <select
+                    name="gender"
+                    value={form.gender}
+                    onChange={handleChange}
+                    className="p-2 border rounded"
+                >
+                    <option value="">Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+            <input
+                name="location"
+                placeholder="Location"
+                value={form.location}
+                onChange={handleChange}
+                className="block w-full p-2 border rounded"
+            />
+            <input
+                name="interests"
+                placeholder="Interests (comma separated)"
+                value={form.interests}
+                onChange={handleChange}
+                className="block w-full p-2 border rounded"
+            />
+            <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="p-2 border rounded w-full"
+            >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+            <Button type="submit" variant="primary" className="w-full">
+                Register
+            </Button>
+        </form>
+    );
+};
+
+export default RegisterForm;
+/components/charts/BarChart.jsx:
+import React from "react";
+
+export default function BarChart({ data, style }) {
+    const maxValue = Math.max(...data.map((d) => d.value));
+
+    return (
+        <div className={style}>
+            <h2 className="text-lg font-bold text-gray-800 mb-4 tracking-wide">
+                ALL ATTENDEE LOCATIONS
+            </h2>
+
+            <div className="flex">
+                {/* Y-axis labels and grid lines */}
+                <div
+                    className="flex flex-col justify-between"
+                    style={{ height: "250px" }}
+                >
+                    {[1000, 800, 600, 400, 200, 0].map((tick) => (
+                        <div key={tick} className="flex items-center">
+                            <span className="text-xs text-gray-400 w-8 text-right">
+                                {tick}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Chart area */}
+                <div className="flex-1 relative ml-4">
+                    {/* Grid lines behind bars */}
+                    <div
+                        className="absolute inset-0 flex flex-col justify-between"
+                        style={{ height: "250px" }}
+                    >
+                        {[1000, 800, 600, 400, 200, 0].map((tick) => (
+                            <div key={tick} className="h-px bg-gray-200"></div>
+                        ))}
+                    </div>
+
+                    {/* Bars */}
+                    <div className="relative px-2" style={{ height: "250px" }}>
+                        <div className="flex justify-between h-full">
+                            {data.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="flex-1 mx-1 relative"
+                                >
+                                    {/* Bar */}
+                                    <div
+                                        className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 max-w-12 w-full ${item.color} rounded-t-full transition-all duration-500 ease-out`}
+                                        style={{
+                                            height: `${
+                                                (item.value / maxValue) * 100
+                                            }%`,
+                                            minHeight: "3px",
+                                        }}
+                                    ></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Value and percentage labels */}
+                    <div className="flex justify-between px-2 mt-4">
+                        {data.map((item, index) => (
+                            <div
+                                key={index}
+                                className="flex-1 mx-1 text-center"
+                            >
+                                <div className="text-xs font-semibold text-gray-800 mb-1">
+                                    {item.value}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                    {item.percentage}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+/components/charts/DonutChart.jsx:
+import React from "react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+
+const DonutChart = ({ classname, inner, outter, data, title, titleStyle }) => {
+    const total = data.reduce((sum, entry) => sum + entry.value, 0);
+
+    return (
+        <div className={classname}>
+            {/* Title */}
+            <h2 className={titleStyle}>{title}</h2>
+
+            {/* Chart */}
+            <div className="flex-1">
+                <ResponsiveContainer>
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={inner}
+                            outerRadius={outter}
+                            dataKey="value"
+                            nameKey="label"
+                            label={({ value }) =>
+                                `${((value / total) * 100).toFixed(1)}%`
+                            }
+                        >
+                            {data.map((entry, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.color}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip
+                            formatter={(value, name) => [
+                                `${value} (${((value / total) * 100).toFixed(
+                                    1
+                                )}%)`,
+                                name,
+                            ]}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Custom Legend */}
+            <div className="grid grid-cols-2 gap-2 mt-4">
+                {data.map((entry, index) => (
+                    <div
+                        key={index}
+                        className="flex items-center justify-center space-x-2"
+                    >
+                        <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: entry.color }}
+                        ></span>
+                        <span className="text-sm">{entry.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default DonutChart;
+/components/charts/LineChart.jsx:
+import React, { useMemo } from "react";
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from "recharts";
+
+const DashLineChart = () => {
+    // Configuration object approach
+    const chartConfig = {
+        timeFrame: "Weekly",
+        currency: "LKR",
+        colorScheme: {
+            primary: "#ef4444",
+            background: "#ffffff",
+            text: "#374151",
+            muted: "#9ca3af",
+        },
+    };
+
+    // Data with computed properties
+    const weeklyData = useMemo(() => {
+        const rawSales = [
+            { week: "Week 1", amount: 35000 },
+            { week: "Week 2", amount: 22000 },
+            { week: "Week 3", amount: 46000 },
+            { week: "Week 4", amount: 15000 },
+            { week: "Week 5", amount: 28000 },
+            { week: "Week 6", amount: 34000 },
+            { week: "Week 7", amount: 22500 },
+        ];
+
+        const totalSales = rawSales.reduce((acc, curr) => acc + curr.amount, 0);
+
+        return rawSales.map((item) => ({
+            ...item,
+            percentageShare: Number(
+                ((item.amount / totalSales) * 100).toFixed(1)
+            ),
+        }));
+    }, []);
+
+    // Business metrics calculator
+    const businessMetrics = useMemo(
+        () => ({
+            revenue: weeklyData.reduce((sum, week) => sum + week.amount, 0),
+            ticketsSold: 2438,
+            eventsHosted: 32,
+        }),
+        [weeklyData]
+    );
+
+    // Tooltip content generator
+    const generateTooltipContent = ({ active, payload, label }) => {
+        if (!active || !payload?.[0]) return null;
+
+        const currentData = payload[0];
+        return (
+            <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                <p className="text-gray-600">{label}</p>
+                <p className="text-red-500 font-semibold">
+                    {currentData.value.toLocaleString()} {chartConfig.currency}
+                </p>
+                <p className="text-gray-500 text-sm">
+                    {currentData.payload.percentageShare}%
+                </p>
+            </div>
+        );
+    };
+
+    // Data point visualization
+    const createDataPoint = ({ cx, cy, payload }) => {
+        const displayAmount = (payload.amount / 1000).toFixed(0);
+
+        return (
+            <g>
+                <circle
+                    cx={cx}
+                    cy={cy}
+                    r={3}
+                    fill={chartConfig.colorScheme.primary}
+                    stroke={chartConfig.colorScheme.background}
+                    strokeWidth={1}
+                />
+                <text
+                    x={cx}
+                    y={cy - 30}
+                    textAnchor="middle"
+                    className="text-xs font-semibold fill-gray-700"
+                >
+                    {displayAmount}k
+                </text>
+                <text
+                    x={cx}
+                    y={cy - 12}
+                    textAnchor="middle"
+                    className="text-xs fill-gray-500"
+                >
+                    {payload.percentageShare}%
+                </text>
+            </g>
+        );
+    };
+
+    // Y-axis formatter function
+    const formatAxisValue = (value) => `${Math.floor(value / 1000)}k`;
+
+    // Header section renderer
+    const HeaderSection = () => {
+        const DropdownIcon = () => (
+            <svg
+                width="10"
+                height="6"
+                viewBox="0 0 12 8"
+                fill="none"
+                className="text-gray-400"
+            >
+                <path
+                    d="M1 1L6 6L11 1"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </svg>
+        );
+
+        return (
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-800">
+                        NET SALES
+                    </h2>
+                    <DropdownIcon />
+                </div>
+
+                <div className="flex items-center bg-black text-white px-3 py-1 rounded-full">
+                    <img
+                        src="/assets/LineChart/Filter.svg"
+                        alt="Filter"
+                        className="w-3 h-3 mr-1"
+                    />
+                    <span className="text-xs font-medium">
+                        Filter: {chartConfig.timeFrame}
+                    </span>
+                </div>
+            </div>
+        );
+    };
+
+    // Metrics display component
+    const MetricsDisplay = () => {
+        const metricItems = [
+            {
+                label: "Total Revenue",
+                value: `${businessMetrics.revenue.toLocaleString()} ${
+                    chartConfig.currency
+                }`,
+            },
+            {
+                label: "Total Tickets",
+                value: `${businessMetrics.ticketsSold} Tickets`,
+            },
+            {
+                label: "Total Events",
+                value: `${businessMetrics.eventsHosted} Events`,
+            },
+        ];
+
+        return (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+                {metricItems.map((metric, idx) => (
+                    <div key={idx}>
+                        <p className="text-gray-500 text-xs">{metric.label}</p>
+                        <p className="text-red-500 text-sm font-bold">
+                            {metric.value}
+                        </p>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    // Chart configuration
+    const chartSettings = {
+        margins: { top: 30, right: 30, left: 0, bottom: 0 },
+        gridStyle: { strokeDasharray: "3 3", stroke: "#f0f0f0" },
+        axisStyle: {
+            axisLine: false,
+            tickLine: false,
+            tick: { fontSize: 12, fill: "#9ca3af" },
+        },
+        lineStyle: {
+            type: "linear",
+            stroke: chartConfig.colorScheme.primary,
+            strokeWidth: 3,
+            activeDot: {
+                r: 6,
+                fill: "#ef4444",
+                stroke: "#ffffff",
+                strokeWidth: 2,
+            },
+        },
+    };
+
+    return (
+        <div
+            className="bg-white rounded-lg border border-blue-200 p-4 w-full"
+            style={{ height: "370px" }}
+        >
+            <HeaderSection />
+            <MetricsDisplay />
+
+            <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={weeklyData} margin={chartSettings.margins}>
+                        <CartesianGrid {...chartSettings.gridStyle} />
+                        <XAxis dataKey="week" {...chartSettings.axisStyle} />
+                        <YAxis
+                            {...chartSettings.axisStyle}
+                            tickFormatter={formatAxisValue}
+                        />
+                        <Tooltip content={generateTooltipContent} />
+                        <Line
+                            {...chartSettings.lineStyle}
+                            dataKey="amount"
+                            dot={createDataPoint}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
+export default DashLineChart;
+/components/charts/LolipopChart.jsx:
+import React from "react";
+import { ResponsiveBar } from "@nivo/bar";
+
+const data = [
+    { date: "01", "18-24": 19, "25-34": 28, "35-44": 39, "45+": 51 },
+    { date: "02", "18-24": 20, "25-34": 31, "35-44": 39, "45+": 49 },
+    { date: "03", "18-24": 23, "25-34": 25, "35-44": 39, "45+": 48 },
+    { date: "04", "18-24": 21, "25-34": 28, "35-44": 43, "45+": 49 },
+    { date: "05", "18-24": 22, "25-34": 29, "35-44": 43, "45+": 49 },
+    { date: "06", "18-24": 18, "25-34": 31, "35-44": 44, "45+": 49 },
+    { date: "07", "18-24": 24, "25-34": 33, "35-44": 41, "45+": 52 },
+];
+
+const colors = {
+    "18-24": "#3b82f6", // blue
+    "25-34": "#f59e0b", // amber
+    "35-44": "#ef4444", // red
+    "45+": "#10b981", // green
+};
+
+const LolipopChart = () => {
+    return (
+        <div className="bg-white p-8 rounded-lg shadow-md w-[1100px]">
+            <h2 className="text-lg font-semibold text-gray-700 mb-6 tracking-wider">
+                ATTENDEE AGE
+            </h2>
+            <div className="h-[350px] bg-white rounded-lg p-6">
+                <ResponsiveBar
+                    data={data}
+                    keys={Object.keys(colors)}
+                    indexBy="date"
+                    margin={{ top: 50, right: 20, bottom: 50, left: 50 }} // extra top margin for legend
+                    padding={0.6}
+                    layout="vertical"
+                    colors={({ id }) => colors[id]}
+                    borderRadius={999} // makes the bar ends circular (lollipop style)
+                    enableGridY={false}
+                    enableGridX={true}
+                    axisBottom={{
+                        tickSize: 0,
+                        tickPadding: 12,
+                    }}
+                    axisLeft={{
+                        tickSize: 0,
+                        tickPadding: 8,
+                    }}
+                    label={(d) => d.value}
+                    labelSkipWidth={0}
+                    labelSkipHeight={0}
+                    labelTextColor="#fff"
+                    legends={[
+                        {
+                            dataFrom: "keys",
+                            anchor: "top-right",
+                            direction: "row",
+                            justify: false,
+                            translateX: -20,
+                            translateY: -40,
+                            itemsSpacing: 20,
+                            itemWidth: 80,
+                            itemHeight: 20,
+                            itemDirection: "left-to-right",
+                            symbolSize: 14,
+                            symbolShape: "circle",
+                        },
+                    ]}
+                />
+            </div>
+        </div>
+    );
+};
+
+export default LolipopChart;
+/components/common/Button.jsx:
+import React from "react";
+
+const Button = ({
+    children,
+    onClick,
+    className = "",
+    variant = "primary",
+    type = "button",
+}) => {
+    const base =
+        "px-4 py-2 rounded-2xl font-semibold transition-shadow inline-flex items-center gap-2";
+    const variants = {
+        primary: "bg-indigo-600 text-white hover:shadow-lg",
+        secondary:
+            "bg-white border border-gray-200 text-gray-800 hover:bg-gray-50",
+        danger: "bg-red-500 text-white hover:shadow-md",
+    };
+
+    return (
+        <button
+            type={type}
+            onClick={onClick}
+            className={`${base} ${
+                variants[variant] || variants.primary
+            } ${className}`}
+        >
+            {children}
+        </button>
+    );
+};
+
+export default Button;
+/components/common/Card.jsx:
+import React from "react";
+
+const Card = ({ icon, name, value, valueColor }) => {
+    return (
+        <div className="bg-white rounded-2xl shadow-md p-8 flex items-center space-x-4 w-90">
+            {/* Icon Section */}
+            <div className="flex items-center justify-center w-20 h-12">
+                <img src={icon} alt="" className="w-20 h-20" />
+            </div>
+
+            {/* Text Section */}
+            <div className="flex flex-col">
+                <span className="text-black text-sm font-semibold">{name}</span>
+                <span className={`${valueColor} font-bold text-2xl`}>
+                    {value}
+                </span>
+            </div>
+        </div>
+    );
+};
+
+export default Card;
+/components/common/LatestEvent.jsx:
+import React from "react";
+
+const LatestEvent = () => {
+    const seats = [
+        // Each row of seats
+        ["empty", "empty", "empty", "paid", "reserved", "paid", "empty"],
+        ["empty", "reserved", "paid", "paid", "empty", "paid", "empty"],
+        [
+            "reserved",
+            "paid",
+            "reserved",
+            "empty",
+            "reserved",
+            "reserved",
+            "reserved",
+        ],
+        ["paid", "reserved", "reserved", "paid", "reserved", "paid", "empty"],
+    ];
+
+    const seatColors = {
+        paid: "bg-purple-700",
+        reserved: "bg-purple-400",
+        empty: "bg-gray-300",
+    };
+
+    return (
+        <div className="flex justify-between items-center bg-white rounded-2xl shadow-md p-8 w-285 max-w-6xl">
+            {/* Left Side - Event Info */}
+            <div>
+                <h2 className="text-3xl font-bold mb-4">Latest Event</h2>
+                <p className="text-gray-700">
+                    <span className="font-semibold">Event Name:</span> Alan
+                    Walker EDM Festival
+                </p>
+                <p className="text-gray-700 mt-2">
+                    <span className="font-semibold">Event Date:</span> 28 March
+                    2025
+                </p>
+
+                {/* Legend */}
+                <div className="mt-6 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded bg-purple-700"></span>
+                        <span className="text-sm">Paid Seats</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded bg-purple-400"></span>
+                        <span className="text-sm">Reserved Seats</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded bg-gray-300"></span>
+                        <span className="text-sm">To be sold</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Side - Seats */}
+            <div className="grid gap-2 mx-auto">
+                {seats.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex gap-2 justify-center">
+                        {row.map((seat, seatIndex) => (
+                            <div
+                                key={seatIndex}
+                                className={`w-12 h-12 rounded-md ${seatColors[seat]}`}
+                            ></div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default LatestEvent;
+/components/common/Page.jsx:
+import React from "react";
+import Sidebar from "../../global/Sidebar";
+
+function Page({ children, header, classname, sparse }) {
+    return (
+        <div className={`${classname}`}>
+            {/* Sidebar on the left */}
+            <Sidebar />
+
+            {/* Main Content in the sparse area */}
+            <div className={`${sparse}`}>
+                {header && <div className="-mt-8">{header}</div>}
+                {children}
+            </div>
+        </div>
+    );
+}
+
+export default Page;
+/components/common/UpcomingEvent.jsx:
+import React from "react";
+
+// Single Event Card
+const EventItem = ({ icon, title, date }) => {
+    return (
+        <div className="flex items-center bg-white rounded-xl shadow-sm p-3 space-x-3">
+            {/* Icon */}
+            <img
+                src={icon}
+                alt={title}
+                className="w-10 h-10 rounded-full object-cover"
+            />
+
+            {/* Text */}
+            <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-800">
+                    Event : {title}
+                </span>
+                <span className="text-xs text-gray-500">Date : {date}</span>
+            </div>
+        </div>
+    );
+};
+
+// Main Card
+const UpcomingEvents = () => {
+    const events = [
+        {
+            icon: "../assets/events/cynosure.png",
+            title: "Cynosure Festival",
+            date: "24 March 2025",
+        },
+        {
+            icon: "../assets/events/nightor.png",
+            title: "Nightor Festival",
+            date: "30 March 2025",
+        },
+        {
+            icon: "../assets/events/cyndrex.png",
+            title: "Cyndrex Festival",
+            date: "03 April 2025",
+        },
+        {
+            icon: "../assets/events/hyper.png",
+            title: "Hyper Festival",
+            date: "10 April 2025",
+        },
+        {
+            icon: "../assets/events/edm.png",
+            title: "EDM Festival",
+            date: "15 April 2025",
+        },
+    ];
+
+    return (
+        <div className="bg-gray-50 rounded-2xl shadow-md px-3 py-2 w-90">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sm font-bold text-gray-700">
+                    UPCOMING EVENTS
+                </h2>
+                <img
+                    src="../assets/Upcoming_Event/Arrow.svg"
+                    alt=""
+                    className="w-10 h-4"
+                />
+            </div>
+
+            {/* Events List */}
+            <div className="flex flex-col gap-3">
+                {events.map((event, index) => (
+                    <EventItem
+                        key={index}
+                        icon={event.icon}
+                        title={event.title}
+                        date={event.date}
+                    />
+                ))}
+            </div>
+
+            {/* Footer */}
+            <div className="text-right mt-3">
+                <a
+                    href="/events"
+                    className="text-sm text-black font-medium hover:underline"
+                >
+                    See All
+                </a>
+            </div>
+        </div>
+    );
+};
+
+export default UpcomingEvents;
+/components/Events/EventCard.jsx:
+import React, { useState, useRef, useEffect } from "react";
+import { MoreVertical } from "lucide-react";
+import {
+    FaMicrophone,
+    FaMoneyBillAlt,
+    FaShoppingCart,
+    FaTicketAlt,
+} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+
+const EventCard = () => {
+    const navigate = useNavigate();
+    const [openMenu, setOpenMenu] = useState(false);
+    const menuRef = useRef();
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setOpenMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className="bg-white rounded-2xl shadow-md p-4 w-80 space-y-1 relative">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+                <div className="flex items-center space-x-2">
+                    <FaMicrophone className="text-gray-700" />
+                    <h2 className="font-semibold text-gray-900">
+                        Colombo Music Festival
+                    </h2>
+                </div>
+
+                {/* Dropdown Trigger */}
+                <div className="relative" ref={menuRef}>
+                    <MoreVertical
+                        className="text-gray-500 w-5 h-5 cursor-pointer"
+                        onClick={() => setOpenMenu(!openMenu)}
+                    />
+
+                    {/* Dropdown Menu */}
+                    {openMenu && (
+                        <div className="absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg z-10">
+                            <button
+                                onClick={() => navigate("/events/:id")}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                onClick={() => alert("Delete clicked")}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center justify-start space-x-6 text-sm font-medium">
+                <div className="flex items-center space-x-1 text-green-600">
+                    <FaMoneyBillAlt /> <span>5000LKR</span>
+                </div>
+                <div className="flex items-center space-x-1 text-red-500">
+                    <FaShoppingCart /> <span>2500</span>
+                </div>
+                <div className="flex items-center space-x-1 text-purple-500">
+                    <FaTicketAlt /> <span>1800</span>
+                </div>
+            </div>
+
+            <hr />
+
+            {/* Venue */}
+            <div className="text-sm space-y-2">
+                <p>
+                    <span className="text-gray-400 font-medium">Venue :</span>{" "}
+                    <span className="font-semibold text-gray-800">
+                        Open Air Theater, Colombo
+                    </span>
+                </p>
+                <p>
+                    <span className="text-gray-400 font-medium">Date :</span>{" "}
+                    <span className="font-semibold text-gray-800">
+                        12 April 2025
+                    </span>
+                </p>
+                <p>
+                    <span className="text-gray-400 font-medium">Time :</span>{" "}
+                    <span className="font-semibold text-gray-800">
+                        09.00PM to 11.30PM
+                    </span>
+                </p>
+            </div>
+
+            {/* Footer Arrow */}
+            <div className="flex justify-end">
+                <button
+                    className="text-white rounded-full hover:bg-gray-400"
+                    onClick={() => navigate("/bookings")}
+                >
+                    <img
+                        src="/assets/Event Cards/Arrow.svg"
+                        className="w-10 h-10"
+                        alt="arrow"
+                    />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default EventCard;
+/components/Events/EventDetalis.jsx:
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+    Edit3,
+    MapPin,
+    Clock,
+    Calendar,
+    Users,
+    Star,
+    ShoppingCart,
+    Eye,
+    Tag,
+} from "lucide-react";
+
+const EventDetails = () => {
+    const navigate = useNavigate();
+    const [isEditing, setIsEditing] = useState(false);
+    const [eventData, setEventData] = useState({
+        name: "Colombo Music Festival 2025",
+        date: "2025-04-12",
+        venue: "Viharamahadevi Open Air Theater, Colombo",
+        time: "6:00PM - 10:30PM",
+        description:
+            "Get ready for Sri Lanka's biggest music festival – the Colombo Music Festival 2025! 🎵🔥 This electrifying open-air concert will feature top international and local artists, bringing an unforgettable night of music, lights, and energy to the heart of Colombo! Join 10,000+ music lovers at the Viharamahadevi Open Air Theater for a night filled with live performances, immersive stage effects, and a festival atmosphere like no other! Whether you're into pop, rock, EDM, or reggae, this festival has something for every music enthusiast!",
+        ticketPrice: "2500LKR",
+        seatAmount: "1200",
+        availableSeats: "523",
+        popularity: "High Popularity",
+        expectedAttendance: "+1000",
+        tags: "#Music, #Festival",
+    });
+
+    const handleInputChange = (field, value) => {
+        setEventData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const toggleEdit = () => {
+        setIsEditing(!isEditing);
+    };
+
+    const seatData = Array.from({ length: 80 }, (_, i) => {
+        const random = Math.random();
+        if (random < 0.4) return "paid";
+        if (random < 0.7) return "reserved";
+        return "available";
+    });
+
+    const renderSeat = (status, index) => {
+        const baseClass = "w-6 h-6 rounded-sm ";
+        const statusClass = {
+            paid: "bg-purple-600",
+            reserved: "bg-purple-400",
+            available: "bg-gray-300",
+        };
+        return (
+            <div key={index} className={baseClass + statusClass[status]}></div>
+        );
+    };
+
+    return (
+        <div className="w-full h-full p-10 bg-white rounded-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+                <button
+                    className="flex items-center text-gray-600 hover:text-gray-800"
+                    onClick={() => navigate("/events")}
+                >
+                    <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                        />
+                    </svg>
+                </button>
+                <h1 className="text-2xl font-bold">Event Details</h1>
+                <div></div>
+            </div>
+
+            {/* Event Name and Date Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Event Name
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.name}
+                            onChange={(e) =>
+                                handleInputChange("name", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <Edit3 className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Event Date
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="date"
+                            value={eventData.date}
+                            onChange={(e) =>
+                                handleInputChange("date", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
+                        />
+                        {!isEditing && (
+                            <Calendar className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Event Venue and Time Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Event Venue
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.venue}
+                            onChange={(e) =>
+                                handleInputChange("venue", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <MapPin className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Event Time
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.time}
+                            onChange={(e) =>
+                                handleInputChange("time", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <Clock className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Event Description */}
+            <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Description
+                </label>
+                <textarea
+                    value={eventData.description}
+                    onChange={(e) =>
+                        handleInputChange("description", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    rows="4"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ticket Price
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.ticketPrice}
+                            onChange={(e) =>
+                                handleInputChange("ticketPrice", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <div className="absolute right-3 top-3 w-5 h-5 text-gray-400">
+                            ₨
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Seat Amount
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.seatAmount}
+                            onChange={(e) =>
+                                handleInputChange("seatAmount", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <ShoppingCart className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Available Seats
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.availableSeats}
+                            onChange={(e) =>
+                                handleInputChange(
+                                    "availableSeats",
+                                    e.target.value
+                                )
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <Eye className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Popularity
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventData.popularity}
+                            onChange={(e) =>
+                                handleInputChange("popularity", e.target.value)
+                            }
+                            disabled={!isEditing}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <Star className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Seat Allocation */}
+                <div className="lg:col-span-2 flex flex-col h-full">
+                    <div className="flex-1 bg-white border border-gray-200 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold mb-4 grid place-items-center">
+                            Seat Allocation
+                        </h3>
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-6 mb-6 text-sm flex-row justify-center">
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-purple-600 rounded-sm"></div>
+                                <span className="text-gray-700">
+                                    Paid Seats
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-purple-400 rounded-sm"></div>
+                                <span className="text-gray-700">
+                                    Reserved Seats
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-gray-300 rounded-sm"></div>
+                                <span className="text-gray-700">Available</span>
+                            </div>
+                        </div>
+
+                        {/* Seat Grid */}
+                        <div className="grid grid-cols-10 gap-1 max-w-md mx-auto">
+                            {seatData.map((status, index) =>
+                                renderSeat(status, index)
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Tags, QR, Buttons */}
+                <div className="flex flex-col justify-between space-y-6">
+                    {/* Tags */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Tags
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={eventData.tags}
+                                onChange={(e) =>
+                                    handleInputChange("tags", e.target.value)
+                                }
+                                disabled={!isEditing}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <Tag className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                        </div>
+                    </div>
+
+                    {/* Expected Attendance */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Expected Attendance
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={eventData.expectedAttendance}
+                                onChange={(e) =>
+                                    handleInputChange(
+                                        "expectedAttendance",
+                                        e.target.value
+                                    )
+                                }
+                                disabled={!isEditing}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 disabled:bg-gray-50 disabled:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <Users className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                        </div>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                        <div className="w-24 h-24 bg-white border-2 border-gray-300 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                            <div className="grid grid-cols-8 gap-px">
+                                {Array.from({ length: 64 }, (_, i) => (
+                                    <div
+                                        key={i}
+                                        className={`w-1 h-1 ${
+                                            Math.random() > 0.5
+                                                ? "bg-black"
+                                                : "bg-white"
+                                        }`}
+                                    ></div>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">
+                            Scan QR code for easy payments
+                        </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-3 mt-auto">
+                        <button
+                            onClick={toggleEdit}
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                        >
+                            {isEditing ? "SAVE" : "EDIT"}
+                        </button>
+                        <button
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                            onClick={() => navigate("/attendee-insights/:id")}
+                        >
+                            Attendee Insights
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default EventDetails;
+/components/Events/EventStatusLegend.jsx:
+import React from "react";
+
+const EventStatusLegend = () => {
+    const statuses = [
+        { color: "bg-blue-600", label: "Up-Coming Events" },
+        { color: "bg-green-600", label: "Pending Events" },
+        { color: "bg-red-600", label: "Closed Events" },
+    ];
+
+    return (
+        <div className="flex justify-between px-20 mb-4">
+            {statuses.map((status, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                    <span
+                        className={`w-4 h-4 rounded-full ${status.color}`}
+                    ></span>
+                    <span className="text-gray-800 font-medium">
+                        {status.label}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+export default EventStatusLegend;
+/components/Events/Navbar.jsx:
+import React, { useState } from "react";
+import {
+    PlusCircle,
+    ChevronDown,
+    Search,
+    Calendar,
+    Filter,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+const EventManagementHeader = () => {
+    const navigate = useNavigate();
+    const [search, setSearch] = useState("");
+    const [filter, setFilter] = useState("Filter");
+    const [sort, setSort] = useState("Status");
+    const [date, setDate] = useState("");
+
+    return (
+        <div className="flex justify-between items-start w-393 bg-white rounded-t-2xl shadow-md p-6 mt-2 mb-6 -mx-6">
+            {/* Left Section */}
+            <div className="space-y-3">
+                <h2 className="text-2xl font-[times-new-roman] font-bold text-gray-900 mb-6">
+                    Event Management Section
+                </h2>
+                <div className="flex space-x-3">
+                    {/* New Event Button */}
+                    <button
+                        className="flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50"
+                        onClick={() => navigate("/add-event")}
+                    >
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        New Event
+                    </button>
+
+                    {/* Attendee Insights Dropdown */}
+                    <button
+                        className="flex items-center px-4 py-2 border border-orange-400 text-orange-500 rounded-xl hover:bg-orange-50"
+                        onClick={() => navigate("/attendee-insights")}
+                    >
+                        Attendee Insights
+                        <ChevronDown className="w-4 h-4 ml-2" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Right Section */}
+            <div className="flex flex-col items-end space-y-3">
+                {/* Top Row: Filter + Search */}
+                <div className="flex space-x-3">
+                    {/* Filter Dropdown */}
+                    <div className="relative flex items-center">
+                        <Filter className="absolute left-3 w-4 h-4 text-gray-500" />
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            className="pl-9 pr-8 py-2 border rounded-lg text-sm text-gray-700 appearance-none"
+                        >
+                            <option value="Filter">Filter</option>
+                            <option value="Music">Music</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Conference">Conference</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 pointer-events-none w-4 h-4 text-gray-500" />
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="flex items-center border rounded-lg px-3 py-2 w-64">
+                        <Search className="w-4 h-4 text-gray-400 mr-2" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search..."
+                            className="outline-none w-full text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Bottom Row: Sort + Pick Date */}
+                <div className="flex space-x-3">
+                    {/* Sort Dropdown */}
+                    <div className="relative">
+                        <select
+                            value={sort}
+                            onChange={(e) => setSort(e.target.value)}
+                            className="px-4 py-2 border rounded-lg text-sm text-gray-700 appearance-none"
+                        >
+                            <option value="Status">Status</option>
+                            <option value="Date">Date</option>
+                            <option value="Name">Name</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    </div>
+
+                    {/* Date Picker */}
+                    <div className="flex items-center border rounded-lg px-3 py-2 text-sm text-gray-700 relative">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-8 h-9"
+                        />
+                        <span
+                            className={date ? "text-gray-800" : "text-gray-400"}
+                        >
+                            {date || "Pick Date"}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default EventManagementHeader;
+/components/insights/AnalyticsCards.jsx:
+import { Calendar, Users, MapPin, Music, Target } from "lucide-react";
+
+export default function AnalyticsCards() {
+    const cards = [
+        {
+            title: "ATTENDEE AGE",
+            mainText: "18 -24 Years",
+            value: "2345",
+            change: "30% Increase",
+            isPositive: true,
+            icon: Calendar,
+        },
+        {
+            title: "ATTENDEE GENDER",
+            mainText: "Male",
+            value: "3345",
+            change: "18% Increase",
+            isPositive: true,
+            icon: Users,
+        },
+        {
+            title: "ATTENDEE LOCATION",
+            mainText: "Colombo",
+            value: "845",
+            change: "15% decrease",
+            isPositive: false,
+            icon: MapPin,
+        },
+        {
+            title: "ATTENDEE INTERESTS",
+            mainText: "EDM Music",
+            value: "123",
+            change: "63% Increase",
+            isPositive: true,
+            icon: Music,
+        },
+        {
+            title: "TOTAL ENGAGEMENT",
+            mainText: "FaceBook ADS",
+            value: "21",
+            change: "21% decrease",
+            isPositive: false,
+            icon: Target,
+        },
+    ];
+
+    return (
+        <div className="w-120 space-y-4">
+            {cards.map((card, index) => (
+                <div
+                    key={index}
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 w-full"
+                >
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-medium text-gray-500 tracking-wide uppercase">
+                            {card.title}
+                        </h3>
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <card.icon className="w-4 h-4 text-gray-600" />
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {card.mainText}
+                        </h2>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1">
+                                {card.isPositive ? (
+                                    <svg
+                                        className="w-4 h-4 text-green-500"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                        />
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        className="w-4 h-4 text-red-500"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"
+                                        />
+                                    </svg>
+                                )}
+                                <span
+                                    className={`text-sm font-medium ${
+                                        card.isPositive
+                                            ? "text-green-500"
+                                            : "text-red-500"
+                                    }`}
+                                >
+                                    {card.change}
+                                </span>
+                            </div>
+                            <span className="text-2xl font-bold text-gray-900">
+                                {card.value}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+/components/insights/AttendeeLocations.jsx:
+import React from "react";
+
+const AttendeeLocationsCard = () => {
+    const locations = [
+        { name: "Colombo", count: 227, color: "bg-blue-500" },
+        { name: "Kandy", count: 123, color: "bg-red-400" },
+        { name: "Galle", count: 143, color: "bg-purple-500" },
+        { name: "Jaffna", count: 70, color: "bg-orange-400" },
+        { name: "International", count: 52, color: "bg-green-600" },
+    ];
+
+    return (
+        <div className="bg-white rounded-2xl shadow-md border border-gray-300 m-6 p-6 max-w-sm h-95">
+            {/* Inner Card Content */}
+            {/* Header */}
+            <h2 className="text-lg font-bold text-black pb-2">
+                ATTENDEE LOCATIONS
+            </h2>
+            <div className="border-2 border-black rounded-2xl overflow-hidden">
+                {/* Table */}
+                <div className="divide-y-2 divide-black">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-2 font-semibold text-black">
+                        <div className="p-3 border-r-2 border-black">
+                            Location
+                        </div>
+                        <div className="p-3">Count</div>
+                    </div>
+
+                    {/* Table Rows */}
+                    {locations.map((location) => (
+                        <div key={location.name} className="grid grid-cols-2">
+                            <div className="p-3 text-black border-r-2 border-black">
+                                {location.name}
+                            </div>
+                            <div className="p-3 text-black flex items-center justify-between">
+                                <span>{location.count}</span>
+                                <div
+                                    className={`w-4 h-4 rounded-full ${location.color}`}
+                                ></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AttendeeLocationsCard;
+/components/insights/Header.jsx:
+import { Users, Filter, Search, ChevronDown } from "lucide-react";
+
+export default function Header() {
+    return (
+        <div className="bg-white rounded-2xl px-6 py-6 shadow-md border border-gray-200 mx-0 my-6">
+            <div className="flex items-center justify-between">
+                {/* Left side - Title with icon */}
+                <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                        <Users className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-semibold text-gray-900">
+                        All Attendee Insights
+                    </h1>
+                </div>
+
+                {/* Right side - Controls */}
+                <div className="flex items-center space-x-3">
+                    {/* Attendees count */}
+                    <div className="flex items-center space-x-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl">
+                        <span className="text-sm font-medium text-gray-700">
+                            Attendees: 7523
+                        </span>
+                        <Users className="w-4 h-4 text-gray-500" />
+                    </div>
+
+                    {/* Filter button */}
+                    <button className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                        <Filter className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-700">
+                            Filter
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </button>
+
+                    {/* Search bar */}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="pl-10 pr-4 py-2 w-64 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+/components/insights/SingleHeader.jsx:
+import React from "react";
+import { Search, Users, Filter } from "lucide-react";
+
+const SingleHeader = () => {
+    return (
+        <div className="flex items-start justify-between bg-white p-4 rounded-t-2xl rounded-tr-2xl shadow-sm mt-8">
+            {/* Left Side - Event Info */}
+            <div>
+                <div className="flex items-center space-x-3">
+                    <button className="p-1 rounded-full hover:bg-gray-100">
+                        <img
+                            src="/assets/Event Cards/Back Arrow.svg"
+                            alt="Back"
+                            className="w-10 h-10"
+                        />
+                    </button>
+                    <h2 className="text-xl font-bold">
+                        Attendee Insights – Colombo Music Festival 2025
+                    </h2>
+                </div>
+                <ul className="mt-2 text-sm text-gray-700 space-y-1">
+                    <li>
+                        • Event Venue : Viharamahadevi Open Air Theater, Colombo
+                    </li>
+                    <li>• Event Date : April 12, 2025</li>
+                    <li>• Event Time : 6.00PM – 10.30PM</li>
+                </ul>
+            </div>
+
+            {/* Right Side - Search & Buttons */}
+            <div className="flex flex-col items-end space-y-6">
+                {/* Search Bar */}
+                <div className="flex items-center border rounded-xl px-3 py-2 w-80">
+                    <Search className="w-4 h-4 text-gray-400 mr-2" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className="flex-1 outline-none text-sm"
+                    />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex space-x-2">
+                    <button className="flex items-center space-x-2 border rounded-xl px-4 py-2 text-sm">
+                        <Users className="w-4 h-4" />
+                        <span>Attendees: 523</span>
+                    </button>
+                    <button className="flex items-center space-x-2 border rounded-xl px-4 py-2 text-sm">
+                        <Filter className="w-4 h-4" />
+                        <span>Filter</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SingleHeader;
+/components/insights/SocialMediaCard.jsx:
+import React from "react";
+import { Instagram, Facebook, Twitter, QrCode } from "lucide-react";
+
+const SocialMediaCard = () => {
+    const stats = [
+        {
+            icon: <Instagram className="text-pink-500 w-6 h-6" />, // icons bigger
+            label: "Instagram Mentions",
+            value: "5,200",
+        },
+        {
+            icon: <Facebook className="text-blue-500 w-6 h-6" />,
+            label: "Facebook Shares",
+            value: "3,800",
+        },
+        {
+            icon: <Twitter className="text-sky-500 w-6 h-6" />,
+            label: "Twitter Tweets",
+            value: "1,200",
+        },
+        {
+            icon: <QrCode className="text-gray-600 w-6 h-6" />,
+            label: "Event Check-ins (QR scans)",
+            value: "9,500",
+        },
+    ];
+
+    return (
+        <div className="bg-white rounded-2xl shadow-md p-10 w-96 h-[28rem]">
+            {/* Header */}
+            <h3 className="text-gray-800 font-semibold text-xl">
+                Engagement & Social Media Reach
+            </h3>
+            <p className="text-gray-500 text-sm mb-6">
+                📢 How attendees engaged with the event
+            </p>
+
+            {/* Stats List */}
+            <div className="space-y-6">
+                {stats.map((item, idx) => (
+                    <div
+                        key={idx}
+                        className="flex items-center justify-between border-b pb-3 last:border-none"
+                    >
+                        <div className="flex items-center gap-3">
+                            {item.icon}
+                            <span className="text-gray-700 text-base">
+                                {item.label}
+                            </span>
+                        </div>
+                        <span className="text-teal-600 font-semibold text-base">
+                            {item.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-6 text-center font-semibold text-teal-600 text-base">
+                TOTAL COUNT : 19,700
+            </div>
+        </div>
+    );
+};
+
+export default SocialMediaCard;
+/components/static/Notifications.jsx:
+
+import React from "react";
+
+const NotificationItem = ({ icon, text }) => (
+    <div className="flex items-start space-x-3 py-2 border-b last:border-b-0">
+        <img src={icon} alt="icon" className="w-5 h-5 mt-1" />
+        <p className="text-sm text-gray-700">{text}</p>
+    </div>
+);
+
+const Notifications = () => {
+    const notifications = [
+        {
+            icon: "../assets/Notifications/Alarm Clock.svg",
+            text: "Paycheck released for artists @Wayo Event",
+        },
+        {
+            icon: "../assets/Notifications/Bank Building.svg",
+            text: "Total revenue has been transferred to bank",
+        },
+        {
+            icon: "../assets/Notifications/Alarm Clock.svg",
+            text: "@Alan Walker Event in 3 days",
+        },
+        {
+            icon: "../assets/Notifications/Card Payment.svg",
+            text: "Paycheck released for artists @Cyndrex Event",
+        },
+        {
+            icon: "../assets/Notifications/Card Payment.svg",
+            text: "Paycheck released for artists @Get Together Event",
+        },
+    ];
+
+    return (
+        <div className="bg-white rounded-2xl shadow-md p-4 w-90">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-2">
+                <h2 className="text-sm font-semibold text-gray-800">
+                    Notifications
+                </h2>
+                <img
+                    src="../assets/Upcoming_Event/Arrow.svg"
+                    alt="arrow"
+                    className="w-10 h-4"
+                />
+            </div>
+
+            {/* Notifications list */}
+            <div className="flex flex-col">
+                {notifications.map((n, index) => (
+                    <NotificationItem key={index} icon={n.icon} text={n.text} />
+                ))}
+            </div>
+
+            {/* Footer */}
+            <div className="text-right mt-2">
+                <a
+                    href="/notifications"
+                    className="text-sm text-black font-medium hover:underline"
+                >
+                    See All
+                </a>
+            </div>
+        </div>
+    );
+};
+
+export default Notifications;
+/global/Header.jsx:
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+const Header = () => {
+    const navigate = useNavigate();
+    return (
+        <header className="bg-black rounded-2xl px-6 py-4 flex items-center justify-between shadow-md border border-gray-200 mx-0 my-6">
+            {/* Left: Profile + Welcome */}
+            <div className="flex items-center space-x-4">
+                <img
+                    src="/assets/header/Profile.svg"
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full object-cover border border-gray-300"
+                />
+                <div>
+                    <h1 className="text-2xl font-bold text-white">
+                        Welcome Rusiru De Silva
+                    </h1>
+                    <p className="text-sm text-white">System Administrator</p>
+                </div>
+            </div>
+
+            {/* Right: Search + Icons */}
+            <div className="flex items-center space-x-3 ml-auto">
+                {/* Search Bar */}
+                <div className="relative">
+                    <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <img src="/assets/header/Search.svg" alt="" />
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className="w-76 pl-10 pr-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-700 placeholder-black focus:outline-none focus:ring-2 focus:ring-indigo-500 mr-2"
+                    />
+                </div>
+
+                {/* Icons */}
+                <button
+                    className="p-2 rounded-full hover:bg-gray-100 transition bg-white"
+                    onClick={() => navigate("/notifications")}
+                >
+                    <img src="/assets/header/Notification.svg" alt="" />
+                </button>
+                <button
+                    className="p-2 rounded-full hover:bg-gray-100 transition bg-white"
+                    onClick={() => navigate("/events")}
+                >
+                    <img src="/assets/header/Event Accepted.svg" alt="" />
+                </button>
+            </div>
+        </header>
+    );
+};
+
+export default Header;
+/global/sidebar.css:
+.add-event {
+    background-color: #282828;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* equivalent to gap-3 */
+    color: white;
+    font-weight: 600; /* equivalent to font-semibold */
+    padding-top: 0.5rem; /* py-2 */
+    padding-bottom: 0.5rem;
+    padding-left: 1rem; /* px-4 */
+    padding-right: 1rem;
+    border-radius: 0.5rem; /* equivalent to rounded */
+    transition: background-color 0.2s ease;
+}
+
+.add-event:hover {
+    background-color: #4b5563; /* Tailwind's gray-600 */
+}
+/global/Sidebar.jsx:
+import React, { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { logout } from "../utils/authUtils";
+import "./sidebar.css";
+import { useNavigate } from "react-router-dom";
+
+const SidebarSection = ({ title, children }) => {
+    const [open, setOpen] = useState(true);
+
+    return (
+        <div>
+            <hr />
+            <button
+                onClick={() => setOpen(!open)}
+                className="w-full flex justify-between items-center text-sm text-white mb-2 uppercase hover:text-white font-bold"
+            >
+                <span>{title}</span>
+                {open ? (
+                    <ChevronDown className="w-4 h-4 transition-transform" />
+                ) : (
+                    <ChevronRight className="w-4 h-4 transition-transform" />
+                )}
+            </button>
+            {open && <div className="space-y-2">{children}</div>}
+        </div>
+    );
+};
+
+const Sidebar = () => {
+    const navigate = useNavigate();
+    return (
+        <aside className="w-64 h-screen bg-black text-white flex flex-col p-4 space-y-3">
+            <img src="/assets/sidebar/logo.svg" alt="" className="w-45 h-25" />
+            {/* Quick Event Button */}
+            <div>
+                <button
+                    className="add-event w-full flex items-center gap-3 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded"
+                    onClick={() => navigate("/add-event")}
+                >
+                    <img
+                        src="/assets/sidebar/Frame 1.svg"
+                        alt="Add"
+                        className="w-8 h-8"
+                    />
+                    <div className="flex flex-col items-start leading-tight">
+                        <span className="font-semibold">Add Quick Event</span>
+                        <span className="text-sm font-normal text-gray-300">
+                            Events
+                        </span>
+                    </div>
+                </button>
+                <br />
+            </div>
+            {/* Main Navigation */}
+            <SidebarSection title="Main Navigation">
+                <ul className="space-y-1">
+                    <li
+                        onClick={() => navigate("/admin/dashboard")}
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                    >
+                        <img
+                            src="/assets/sidebar/Control Panel.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Dashboard</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/events")}
+                    >
+                        <img
+                            src="/assets/sidebar/Event Accepted.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Manage Events</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight text-white"
+                        onClick={() => navigate("/bookings")}
+                    >
+                        <img
+                            src="/assets/sidebar/New Ticket.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Booking & Tickets</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/attendee-insights")}
+                    >
+                        <img
+                            src="/assets/sidebar/Collaborating In Circle.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Attendee Insights</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/analytics")}
+                    >
+                        <img
+                            src="/assets/sidebar/Statistics.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Analytics & Reports</span>
+                    </li>
+                </ul>
+            </SidebarSection>
+            {/* Support & Management */}
+            <SidebarSection title="Support & Management">
+                <ul className="space-y-1">
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/support")}
+                    >
+                        <img
+                            src="/assets/sidebar/Customer Support.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Contact Support</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/notifications")}
+                    >
+                        <img
+                            src="/assets/sidebar/Add Reminder.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Notifications</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/settings")}
+                    >
+                        <img
+                            src="/assets/sidebar/Settings.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Settings</span>
+                    </li>
+                </ul>
+            </SidebarSection>
+
+            {/* Additional Features */}
+            <SidebarSection title="Additional Features">
+                <ul className="space-y-1">
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/marketing")}
+                    >
+                        <img
+                            src="/assets/sidebar/Speaker.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Markting</span>
+                    </li>
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/event-categories")}
+                    >
+                        <img
+                            src="/assets/sidebar/Opened Folder.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>Event Categories</span>
+                    </li>
+                </ul>
+            </SidebarSection>
+            {/* Account Management */}
+            <SidebarSection title="Account Management">
+                <ul className="space-y-1">
+                    <li
+                        className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight"
+                        onClick={() => navigate("/users")}
+                    >
+                        <img
+                            src="/assets/sidebar/Add User Male.svg"
+                            alt=""
+                            className="w-8 h-8"
+                        />
+                        <span>User Management</span>
+                    </li>
+                    <button onClick={logout} className="w-full">
+                        <li className="flex items-center gap-3 hover:bg-gray-800 p-[3px] rounded cursor-pointer text-sm/13 leading-tight">
+                            <img
+                                src="/assets/sidebar/Logout.svg"
+                                alt=""
+                                className="w-8 h-8"
+                            />
+                            <span>Logout</span>
+                        </li>
+                    </button>
+                </ul>
+            </SidebarSection>
+        </aside>
+    );
+};
+
+export default Sidebar;
+/pages/AdminDashboard.jsx:
+import React from "react";
+import Sidebar from "../global/Sidebar";
+import Page from "../components/common/Page";
+import Header from "../global/Header";
+import Card from "../components/common/Card";
+import UpcomingEvents from "../components/common/UpcomingEvents";
+import Notifications from "../components/static/Notifications";
+import DonutChart from "../components/charts/DonutChart";
+import DashLineChart from "../components/charts/LineChart";
+import LatestEvent from "../components/common/LatestEvent";
+
+const data = [
+    { label: "Event A", value: 250, color: "purple" },
+    { label: "Event B", value: 450, color: "blue" },
+    { label: "Event C", value: 170, color: "gold" },
+    { label: "Event D", value: 370, color: "green" },
+    { label: "Event E", value: 290, color: "red" },
+];
+
+function AdminDashboard() {
+    return (
+        <Page
+            header={<Header />}
+            classname={`flex bg-black min-h-screen`}
+            sparse="flex-1 bg-[#F2F2F2] rounded-2xl m-6 p-6 overflow-y-auto"
+        >
+            <div className="flex space-x-4 max-w-full">
+                {/* Left side - Main content area */}
+                <div className="flex-1 min-w-0">
+                    {/* First row - 3 cards */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                        <Card
+                            icon={"../assets/cards/Dancing.svg"}
+                            name={"EVENTS"}
+                            value={22 + " Events"}
+                            valueColor={"text-blue-800"}
+                        />
+                        <Card
+                            icon={"../assets/cards/Movie Ticket.svg"}
+                            name={"BOOKINGS"}
+                            value={22}
+                            valueColor={"text-[#F29D38]"}
+                        />
+                        <Card
+                            icon={"../assets/cards/Transaction.svg"}
+                            name={"REVENUE"}
+                            value={"623,5000 LKR"}
+                            valueColor={"text-[#1A7A20]"}
+                        />
+                    </div>
+
+                    {/* Second row - Line chart under first 2 cards, Donut chart under third card */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-2">
+                            <div className="w-188">
+                                <DashLineChart />
+                            </div>
+                        </div>
+                        <div className="col-span-1">
+                            <DonutChart
+                                classname={
+                                    "w-90 h-[23rem] p-4 bg-white rounded-2xl shadow-md flex flex-col"
+                                }
+                                inner={45}
+                                outter={75}
+                                data={data}
+                                title={
+                                    <div>
+                                        <p>Event</p>
+                                        <p>Distribution</p>
+                                    </div>
+                                }
+                                titleStyle={
+                                    "text-4xl font-bold text-center mb-4"
+                                }
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right side - Upcoming events + Notifications */}
+                <div className="w-90 flex flex-col space-y-4 flex-shrink-0">
+                    <div className="h-full">
+                        <UpcomingEvents />
+                    </div>
+                    <div className="h-full">
+                        <Notifications />
+                    </div>
+                </div>
+            </div>
+            <div className="-mt-68">
+                <LatestEvent />
+            </div>
+        </Page>
+    );
+}
+export default AdminDashboard;
+/pages/AllAttendeeInsights.jsx:
+import React from "react";
+import Page from "../components/common/Page";
+import AnalyticsCards from "../components/insights/AnalyticsCards";
+import Header from "../components/insights/Header";
+import BarChart from "../components/charts/BarChart";
+import DonutChart from "../components/charts/DonutChart";
+
+const pieData = [
+    { label: "Event A", value: 250, color: "purple" },
+    { label: "Event B", value: 450, color: "blue" },
+    { label: "Event C", value: 170, color: "gold" },
+    { label: "Event D", value: 370, color: "green" },
+    { label: "Event E", value: 290, color: "red" },
+];
+
+const barData = [
+    { value: 853, percentage: "11.7%", color: "bg-blue-500" },
+    { value: 743, percentage: "10.2%", color: "bg-red-500" },
+    { value: 763, percentage: "10.5%", color: "bg-green-600" },
+    { value: 934, percentage: "12.9%", color: "bg-purple-600" },
+    { value: 783, percentage: "10.8%", color: "bg-black" },
+    { value: 643, percentage: "8.9%", color: "bg-orange-500" },
+    { value: 687, percentage: "9.5%", color: "bg-teal-500" },
+    { value: 936, percentage: "12.9%", color: "bg-yellow-500" },
+    { value: 573, percentage: "7.9%", color: "bg-gray-400" },
+    { value: 345, percentage: "4.8%", color: "bg-pink-400" },
+];
+
+function AllAttendeeInsights() {
+    return (
+        <Page
+            header={<Header />}
+            classname={`flex bg-black min-h-screen`}
+            sparse="flex-1 bg-[#F2F2F2] rounded-2xl m-6 p-6 overflow-y-auto"
+        >
+            <div className="flex space-x-6 h-full">
+                {/* Left side - Analytics Cards */}
+                <div className="flex-shrink-0">
+                    <AnalyticsCards />
+                </div>
+
+                {/* Right side - Bar Chart at top */}
+                <div className="flex-1 flex flex-col">
+                    <div>
+                        <BarChart
+                            data={barData}
+                            style={"bg-white p-4 rounded-lg shadow-lg w-full"}
+                        />
+                    </div>
+                    {/* You can add more components below the chart here */}
+                    <div className="flex flex-row space-x-6 mt-6">
+                        {/* Additional content can go here */}
+                        <DonutChart
+                            classname={
+                                "w-122.5 h-[28rem] p-4 bg-white rounded-2xl shadow-md flex flex-col"
+                            }
+                            inner={"60"}
+                            outter={"85"}
+                            data={pieData}
+                            title={"Attendee Interests"}
+                            titleStyle={"text-2xl font-bold text-center mb-4"}
+                        />
+                        <DonutChart
+                            classname={
+                                "w-122.5 h-[28rem] p-4 bg-white rounded-2xl shadow-md flex flex-col"
+                            }
+                            inner={"0"}
+                            outter={"75"}
+                            data={pieData}
+                            title={"Attendee Ages"}
+                            titleStyle={"text-2xl font-bold text-center mb-4"}
+                        />
+                    </div>
+                </div>
+            </div>
+        </Page>
+    );
+}
+
+export default AllAttendeeInsights;
+/pages/EventDetailsPage.jsx:
+import React from "react";
+import Page from "../components/common/Page";
+import EventDetails from "../components/Events/EventDetails";
+
+function EventDetailsPage() {
+    return (
+        <Page
+            classname={`flex bg-black`}
+            sparse={"flex-1 bg-[#F2F2F2] rounded-2xl m-6  overflow-y-auto"}
+        >
+            <EventDetails />
+        </Page>
+    );
+}
+
+export default EventDetailsPage;
+/pages/Login.jsx:
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import LoginForm from "../components/auth/LoginForm";
+
+const Login = () => {
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+
+    const handleLoginSuccess = (role) => {
+        navigate(role === "admin" ? "/admin/dashboard" : "/events");
+    };
+
+    return (
+        <div className="min-h-[80vh] flex items-center justify-center ">
+            <div className="card w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-4">
+                    Sign in to EventX Studio
+                </h2>
+                <LoginForm onSuccess={handleLoginSuccess} onError={setError} />
+                {error && <div className="mt-3 text-red-500">{error}</div>}
+
+                {/* 👇 Add this */}
+                <p className="mt-4 text-sm text-gray-600">
+                    Don’t have an account?{" "}
+                    <Link
+                        to="/register"
+                        className="text-indigo-600 font-medium hover:underline"
+                    >
+                        Register here
+                    </Link>
+                </p>
+            </div>
+        </div>
+    );
+};
+
+export default Login;
+/pages/Notifications.jsx:
+import React from "react";
+import Page from "../components/common/Page";
+
+function Notifications() {
+    return (
+        <Page
+            classname={`flex bg-black min-h-screen`}
+            sparse="flex-1 bg-[#F2F2F2] rounded-2xl m-6 p-6 overflow-y-auto"
+        >
+            <h1>Notification</h1>
+        </Page>
+    );
+}
+
+export default Notifications;
+/pages/Register.jsx:
+import React from "react";
+import { Link } from "react-router-dom";
+import RegisterForm from "../components/auth/RegisterForm";
+
+const Register = () => (
+    <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="card w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Create an account</h2>
+            <RegisterForm />
+
+            {/* 👇 Add this */}
+            <p className="mt-4 text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link
+                    to="/login"
+                    className="text-indigo-600 font-medium hover:underline"
+                >
+                    Login here
+                </Link>
+            </p>
+        </div>
+    </div>
+);
+
+export default Register;
+/pages/SingleEventAttendeeInsights.jsx:
+import React from "react";
+import Page from "../components/common/Page";
+import SingleHeader from "../components/insights/SingleHeader";
+import LolipopChart from "../components/charts/LolipopChart";
+import SocialMediaCard from "../components/insights/SocialMediaCard";
+import AttendeeLocationsCard from "../components/insights/AttendeeLocationsCard";
+import DonutChart from "../components/charts/DonutChart";
+import BarChart from "../components/charts/BarChart";
+
+function SingleEventAttendeeInsights() {
+    const pieData = [
+        { label: "Live Music", value: 50, color: "#0E7BF6" },
+        { label: "Innovation", value: 35, color: "#118A40" },
+        { label: "EDM Music", value: 35, color: "#FFC363" },
+        { label: "Food Festivals", value: 25, color: "#DF5A5A" },
+    ];
+
+    const barData = [
+        { value: 1000, percentage: "40%", color: "bg-blue-500" },
+        { value: 800, percentage: "32%", color: "bg-red-400" },
+        { value: 600, percentage: "24%", color: "bg-purple-500" },
+        { value: 400, percentage: "16%", color: "bg-orange-400" },
+        { value: 200, percentage: "8%", color: "bg-green-600" },
+    ];
+
+    return (
+        <Page
+            header={<SingleHeader />}
+            classname={`flex bg-black min-h-screen`}
+            sparse="flex-1 bg-[#F2F2F2] rounded-2xl m-6 overflow-y-auto"
+        >
+            <div className="grid grid-cols-6 p-6 overflow-x-hidden">
+                <div className="col-start-1 col-end-6">
+                    <LolipopChart />
+                </div>
+                <div className="col-start-1 col-end-3 mt-6">
+                    <DonutChart
+                        classname={
+                            "w-135 h-[23rem] p-4 bg-white rounded-2xl shadow-md flex flex-col"
+                        }
+                        inner={"60"}
+                        outter={"85"}
+                        data={pieData}
+                        title={"Attendee Interests"}
+                        titleStyle={"text-2xl font-bold text-center mb-4"}
+                    />
+                </div>
+                <div className="col-start-3 col-end-6 mt-6 mx-13">
+                    <BarChart
+                        data={barData}
+                        style={
+                            "bg-white p-4 rounded-xl shadow-lg w-135 h-[23rem]"
+                        }
+                    />
+                </div>
+                <div className="flex flex-col space-y-6 -mt-115">
+                    <div className="-mx-30">
+                        <SocialMediaCard />
+                    </div>
+                    <div className="-mx-35 -mt-5">
+                        <AttendeeLocationsCard />
+                    </div>
+                </div>
+            </div>
+        </Page>
+    );
+}
+
+export default SingleEventAttendeeInsights;
+/pages/UserEvent.jsx:
+import React from "react";
+import Page from "../components/common/Page";
+import EventCard from "../components/Events/EventCard";
+import Navbar from "../components/Events/Navbar";
+import EventStatusLegend from "../components/Events/EventStatusLegend";
+
+function UserEvent() {
+    return (
+        <Page
+            header={<Navbar />}
+            classname={`flex bg-black min-h-screen`}
+            sparse="flex-1 bg-[#F2F2F2] rounded-2xl m-6 p-6 overflow-y-auto"
+        >
+            <EventStatusLegend />
+            <div className="flex space-x-71 h-[calc(100vh-260px)] overflow-x-auto overflow-x-hidden pr-2">
+                <div className="flex flex-col"> // upcoming-events
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                </div>
+                <div className="flex flex-col"> // pending-events
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                </div>
+                <div className="flex flex-col"> // closed-events
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                    <EventCard />
+                    <br />
+                </div>
+            </div>
+        </Page>
+    );
+}
+
+export default UserEvent;
+/services/analyticsService.js:
+import api from "./api";
+
+export const getAnalytics = () =>
+    api.get("/analytics/dashboard").then((res) => res.data);
+
+export const getAttendees = (eventId) =>
+    api
+        .get("/analytics/attendees", { params: { eventId } })
+        .then((res) => res.data);
+
+export const getEventInsights = (eventId) =>
+    api
+        .get("/analytics/insights", { params: { eventId } })
+        .then((res) => res.data);
+/services/api.js:
+import axios from "axios";
+
+const api = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+    headers: { "Content-Type": "application/json" },
+});
+
+// add token to every request automatically
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (err) => Promise.reject(err)
+);
+
+export default api;
+/services/authService.js:
+import api from "./api";
+
+export const login = (credentials) =>
+    api.post("/auth/login", credentials).then((res) => res.data);
+
+export const register = (userData) =>
+    api.post("/auth/register", userData).then((res) => res.data);
+/services/eventService.js:
+import api from "./api";
+
+export const getEvents = (filters = {}) =>
+    api.get("/events", { params: filters }).then((res) => res.data);
+
+export const getEvent = (id) =>
+    api.get(`/events/${id}`).then((res) => res.data);
+
+export const createEvent = (eventData) =>
+    api.post("/events", eventData).then((res) => res.data);
+
+export const updateEvent = (id, eventData) =>
+    api.put(`/events/${id}`, eventData).then((res) => res.data);
+
+export const deleteEvent = (id) =>
+    api.delete(`/events/${id}`).then((res) => res.data);
+/services/ticketService.js:
+import api from "./api";
+
+export const bookTicket = (bookingData) =>
+    api.post("/tickets/book", bookingData).then((res) => res.data);
+
+export const getMyTickets = () =>
+    api.get("/tickets/my").then((res) => res.data);
+
+export const getEventTickets = (eventId) =>
+    api.get(`/tickets/event/${eventId}`).then((res) => res.data);
+/utils/authUtils.js:
+import { jwtDecode } from "jwt-decode";
+
+export const isAuthenticated = () => !!localStorage.getItem("token");
+
+export const getUserRole = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const decoded = jwtDecode(token);
+        return decoded?.user?.role || null;
+    } catch {
+        return null;
+    }
+};
+
+export const logout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+};
+/utils/qrUtils.js:
+import QRCode from "qrcode";
+
+export const generateQR = async (data) => QRCode.toDataURL(data);
+.env:
+VITE_API_KEY = http://localhost:5000/api
+index.html:
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>EventX-Studio</title>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.jsx"></script>
+    </body>
+</html>
+package.json:
+{
+  "name": "eventx-studio-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@nivo/bar": "^0.99.0",
+    "@nivo/line": "^0.99.0",
+    "@nivo/scatterplot": "^0.99.0",
+    "@tailwindcss/vite": "^4.1.12",
+    "axios": "^1.11.0",
+    "jwt-decode": "^4.0.0",
+    "lucide-react": "^0.542.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.8.2",
+    "recharts": "^3.1.2",
+    "tailwindcss": "^4.1.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "vite": "^7.1.2"
+  }
+}
+vite.config.js:
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})

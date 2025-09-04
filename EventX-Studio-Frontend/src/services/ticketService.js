@@ -14,3 +14,9 @@ export const getMyTickets = () =>
 
 export const getEventTickets = (eventId) =>
     api.get(`/tickets/event/${eventId}`).then((res) => res.data);
+
+export const getAllTickets = () =>
+    api.get("/tickets/all").then((res) => res.data); // Added export
+
+export const updateTicket = (ticketId, data) =>
+    api.put(`/tickets/${ticketId}`, data).then((res) => res.data);

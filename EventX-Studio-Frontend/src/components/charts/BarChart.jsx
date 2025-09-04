@@ -1,16 +1,19 @@
 import React from "react";
 
-export default function BarChart({ data, style }) {
+export default function BarChart({
+    data,
+    style,
+    title = "ALL ATTENDEE LOCATIONS",
+}) {
+    if (!data || data.length === 0) return <p>No data available</p>;
     const maxValue = Math.max(...data.map((d) => d.value));
 
     return (
         <div className={style}>
             <h2 className="text-lg font-bold text-gray-800 mb-4 tracking-wide">
-                ALL ATTENDEE LOCATIONS
+                {title}
             </h2>
-
             <div className="flex">
-                {/* Y-axis labels and grid lines */}
                 <div
                     className="flex flex-col justify-between"
                     style={{ height: "250px" }}
@@ -23,10 +26,7 @@ export default function BarChart({ data, style }) {
                         </div>
                     ))}
                 </div>
-
-                {/* Chart area */}
                 <div className="flex-1 relative ml-4">
-                    {/* Grid lines behind bars */}
                     <div
                         className="absolute inset-0 flex flex-col justify-between"
                         style={{ height: "250px" }}
@@ -35,8 +35,6 @@ export default function BarChart({ data, style }) {
                             <div key={tick} className="h-px bg-gray-200"></div>
                         ))}
                     </div>
-
-                    {/* Bars */}
                     <div className="relative px-2" style={{ height: "250px" }}>
                         <div className="flex justify-between h-full">
                             {data.map((item, index) => (
@@ -44,7 +42,6 @@ export default function BarChart({ data, style }) {
                                     key={index}
                                     className="flex-1 mx-1 relative"
                                 >
-                                    {/* Bar */}
                                     <div
                                         className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 max-w-12 w-full ${item.color} rounded-t-full transition-all duration-500 ease-out`}
                                         style={{
@@ -58,8 +55,6 @@ export default function BarChart({ data, style }) {
                             ))}
                         </div>
                     </div>
-
-                    {/* Value and percentage labels */}
                     <div className="flex justify-between px-2 mt-4">
                         {data.map((item, index) => (
                             <div

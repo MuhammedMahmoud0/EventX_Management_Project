@@ -17,3 +17,6 @@ export const getEventInsights = (eventId) =>
     api
         .get("/analytics/insights", { params: { eventId } })
         .then((res) => res.data);
+
+export const getReports = (params = {}) =>
+    api.get("/analytics/reports", { params }).then((res) => res.data);

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getNotifications } from "../../services/notificationService";
 
 const NotificationItem = ({ icon, text }) => (
     <div className="flex items-start space-x-3 py-2 border-b last:border-b-0">
@@ -8,28 +9,20 @@ const NotificationItem = ({ icon, text }) => (
 );
 
 const Notifications = () => {
-    const notifications = [
-        {
-            icon: "../assets/Notifications/Alarm Clock.svg",
-            text: "Paycheck released for artists @Wayo Event",
-        },
-        {
-            icon: "../assets/Notifications/Bank Building.svg",
-            text: "Total revenue has been transferred to bank",
-        },
-        {
-            icon: "../assets/Notifications/Alarm Clock.svg",
-            text: "@Alan Walker Event in 3 days",
-        },
-        {
-            icon: "../assets/Notifications/Card Payment.svg",
-            text: "Paycheck released for artists @Cyndrex Event",
-        },
-        {
-            icon: "../assets/Notifications/Card Payment.svg",
-            text: "Paycheck released for artists @Get Together Event",
-        },
-    ];
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getNotifications()
+            .then((data) => {
+                // Keep only the latest 5 notifications
+                setNotifications(data.notifications.slice(0, 5));
+                setLoading(false);
+            })
+            .catch(console.error);
+    }, []);
+
+    if (loading) return <p>Loading notifications...</p>;
 
     return (
         <div className="bg-white rounded-2xl shadow-md p-4 w-90">
@@ -47,8 +40,12 @@ const Notifications = () => {
 
             {/* Notifications list */}
             <div className="flex flex-col">
-                {notifications.map((n, index) => (
-                    <NotificationItem key={index} icon={n.icon} text={n.text} />
+                {notifications.map((notif) => (
+                    <NotificationItem
+                        key={notif._id}
+                        icon="../assets/Notifications/Alarm Clock.svg" // Or dynamic icon if you have one
+                        text={`${notif.title}: ${notif.message}`}
+                    />
                 ))}
             </div>
 

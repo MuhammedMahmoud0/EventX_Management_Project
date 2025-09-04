@@ -5,20 +5,24 @@ import {
     Route,
     Navigate,
 } from "react-router-dom";
-// import Navbar from "./components/common/Navbar";
-// import Footer from "./components/common/Footer";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserEvent from "./pages/UserEvent";
 import Notifications from "./pages/Notifications";
-// import EventList from "./pages/EventList";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import AllAttendeeInsights from "./pages/AllAttendeeInsights";
-// import MyTickets from "./pages/MyTickets";
-// import Analytics from "./pages/Analytics";
-import { isAuthenticated, getUserRole } from "./utils/authUtils";
 import SingleEventAttendeeInsights from "./pages/SingleEventAttendeeInsights";
+import MyTickets from "./pages/MyTickets";
+import Analytics from "./pages/Analytics";
+import AddEvent from "./pages/AddEvent";
+import Bookings from "./pages/Bookings";
+import Support from "./pages/Support"; // Create similar
+import Settings from "./pages/Settings"; // Create similar, use updateMyProfile
+import Marketing from "./pages/Marketing"; // Create similar
+import EventCategories from "./pages/EventCategories"; // Create similar
+import Users from "./pages/Users";
+import { isAuthenticated, getUserRole } from "./utils/authUtils";
 
 const PrivateRoute = ({ children, role }) => {
     if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -29,7 +33,6 @@ const PrivateRoute = ({ children, role }) => {
 
 const App = () => (
     <Router>
-        {/* <Navbar /> */}
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -73,8 +76,7 @@ const App = () => (
                     </PrivateRoute>
                 }
             />
-
-            {/* <Route
+            <Route
                 path="/my-tickets"
                 element={
                     <PrivateRoute>
@@ -89,7 +91,71 @@ const App = () => (
                         <Analytics />
                     </PrivateRoute>
                 }
-            /> */}
+            />
+            <Route
+                path="/add-event"
+                element={
+                    <PrivateRoute role="admin">
+                        <AddEvent />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/bookings"
+                element={
+                    <PrivateRoute>
+                        <Bookings />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/support"
+                element={
+                    <PrivateRoute>
+                        <Support />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/settings"
+                element={
+                    <PrivateRoute>
+                        <Settings />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/marketing"
+                element={
+                    <PrivateRoute role="admin">
+                        <Marketing />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/event-categories"
+                element={
+                    <PrivateRoute role="admin">
+                        <EventCategories />
+                    </PrivateRoute>
+                }
+            />{" "}
+            <Route
+                path="/users"
+                element={
+                    <PrivateRoute role="admin">
+                        <Users />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/notifications"
+                element={
+                    <PrivateRoute>
+                        <Notifications />
+                    </PrivateRoute>
+                }
+            />
             <Route
                 path="/"
                 element={
@@ -102,16 +168,7 @@ const App = () => (
                     )
                 }
             />
-            <Route
-                path="/notifications"
-                element={
-                    <PrivateRoute role="admin">
-                        <Notifications />
-                    </PrivateRoute>
-                }
-            />
         </Routes>
-        {/* <Footer /> */}
     </Router>
 );
 

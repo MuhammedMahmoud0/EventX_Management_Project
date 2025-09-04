@@ -6,8 +6,10 @@ import {
     Calendar,
     Filter,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const EventManagementHeader = () => {
+    const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("Filter");
     const [sort, setSort] = useState("Status");
@@ -22,13 +24,19 @@ const EventManagementHeader = () => {
                 </h2>
                 <div className="flex space-x-3">
                     {/* New Event Button */}
-                    <button className="flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50">
+                    <button
+                        className="flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50"
+                        onClick={() => navigate("/add-event")}
+                    >
                         <PlusCircle className="w-4 h-4 mr-2" />
                         New Event
                     </button>
 
                     {/* Attendee Insights Dropdown */}
-                    <button className="flex items-center px-4 py-2 border border-orange-400 text-orange-500 rounded-xl hover:bg-orange-50">
+                    <button
+                        className="flex items-center px-4 py-2 border border-orange-400 text-orange-500 rounded-xl hover:bg-orange-50"
+                        onClick={() => navigate("/attendee-insights")}
+                    >
                         Attendee Insights
                         <ChevronDown className="w-4 h-4 ml-2" />
                     </button>

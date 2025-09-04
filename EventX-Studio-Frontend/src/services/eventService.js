@@ -14,3 +14,8 @@ export const updateEvent = (id, eventData) =>
 
 export const deleteEvent = (id) =>
     api.delete(`/events/${id}`).then((res) => res.data);
+
+// export const bookTickets = (data) =>
+//     api.post("/events/book-tickets", data).then((res) => res.data);
+export const bookTickets = (data) =>
+    api.post("/tickets/book", data).then((res) => res.data);

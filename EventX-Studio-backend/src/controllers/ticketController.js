@@ -1,4 +1,5 @@
 const Ticket = require("../models/Ticket");
+const User = require("../models/User");
 const Event = require("../models/Event");
 const { generateQR } = require("../utils/qrGenerator");
 const {
@@ -8,7 +9,7 @@ const {
 
 exports.bookTicket = async (req, res, next) => {
     const { eventId, seatNumber } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
 
     try {
         const event = await Event.findById(eventId);
@@ -22,10 +23,15 @@ exports.bookTicket = async (req, res, next) => {
 
         const qrCode = await generateQR(`ticket-${eventId}-${userId}`);
 
-        const ticket = new Ticket({ userId, eventId, seatNumber, qrCode });
+        const ticket = new Ticket({
+            userId,
+            eventId,
+            seatNumber,
+            qrCode,
+            price: event.ticketPrice,
+        });
         await ticket.save();
 
-        // Send notification to user
         await createNotification(
             userId,
             "Booking Confirmed!",
@@ -35,7 +41,6 @@ exports.bookTicket = async (req, res, next) => {
             "Ticket"
         );
 
-        // Notify admins about new booking
         await notifyAdmins(
             "New Ticket Booking",
             `${user.name} has booked a ticket for ${event.name}`,
@@ -80,6 +85,17 @@ exports.updateTicket = async (req, res, next) => {
         if (!ticket)
             return res.status(404).json({ message: "Ticket not found" });
         res.json(ticket);
+    } catch (err) {
+        next(err);
+    }
+};
+
+exports.getAllTickets = async (req, res, next) => {
+    try {
+        const tickets = await Ticket.find()
+            .populate("userId", "name email")
+            .populate("eventId", "name");
+        res.json(tickets);
     } catch (err) {
         next(err);
     }

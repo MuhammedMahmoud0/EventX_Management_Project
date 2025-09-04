@@ -5,7 +5,8 @@ const eventSchema = new mongoose.Schema(
         name: { type: String, required: true },
         date: { type: Date, required: true },
         venue: { type: String, required: true },
-        time: { type: String, required: true },
+        time: { type: String, required: true }, // store as string "09:00 PM"
+        timeEnd: { type: String, required: true }, // same
         description: { type: String },
         ticketPrice: { type: Number, required: true }, // Changed from price
         totalSeats: { type: Number, required: true },
@@ -14,7 +15,7 @@ const eventSchema = new mongoose.Schema(
         popularity: { type: String, enum: ["low", "medium", "high"] }, // Enforce valid values
         status: {
             type: String,
-            enum: ["upcoming", "active", "closed"],
+            enum: ["upcoming", "pending", "closed"],
             default: "upcoming",
         },
     },

@@ -29,7 +29,7 @@ exports.registerUser = async (req, res, next) => {
         await user.save();
 
         const payload = { user: { id: user.id, role: user.role } };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
 
         res.status(201).json({
             token,

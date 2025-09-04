@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import {
     Edit3,
     MapPin,
@@ -14,21 +15,21 @@ import {
 
 const EventDetails = () => {
     const navigate = useNavigate();
+    const { id } = useParams(); // get event ID from URL
     const [isEditing, setIsEditing] = useState(false);
-    const [eventData, setEventData] = useState({
-        name: "Colombo Music Festival 2025",
-        date: "2025-04-12",
-        venue: "Viharamahadevi Open Air Theater, Colombo",
-        time: "6:00PM - 10:30PM",
-        description:
-            "Get ready for Sri Lanka's biggest music festival – the Colombo Music Festival 2025! 🎵🔥 This electrifying open-air concert will feature top international and local artists, bringing an unforgettable night of music, lights, and energy to the heart of Colombo! Join 10,000+ music lovers at the Viharamahadevi Open Air Theater for a night filled with live performances, immersive stage effects, and a festival atmosphere like no other! Whether you're into pop, rock, EDM, or reggae, this festival has something for every music enthusiast!",
-        ticketPrice: "2500LKR",
-        seatAmount: "1200",
-        availableSeats: "523",
-        popularity: "High Popularity",
-        expectedAttendance: "+1000",
-        tags: "#Music, #Festival",
-    });
+    const [eventData, setEventData] = useState(null); // start null for loading
+
+    useEffect(() => {
+        const fetchEvent = async () => {
+            try {
+                const response = await axios.get(`/api/events/${id}`);
+                setEventData(response.data); // populate state with API data
+            } catch (error) {
+                console.error("Error fetching event data:", error);
+            }
+        };
+        fetchEvent();
+    }, [id]);
 
     const handleInputChange = (field, value) => {
         setEventData((prev) => ({
@@ -60,11 +61,16 @@ const EventDetails = () => {
         );
     };
 
+    if (!eventData) return <div className="p-10">Loading event details...</div>;
+
     return (
         <div className="w-full h-full p-10 bg-white rounded-2xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
-                <button className="flex items-center text-gray-600 hover:text-gray-800">
+                <button
+                    className="flex items-center text-gray-600 hover:text-gray-800"
+                    onClick={() => navigate("/events")}
+                >
                     <svg
                         className="w-5 h-5 mr-2"
                         fill="none"
@@ -92,7 +98,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.name}
+                            value={eventData.name || ""}
                             onChange={(e) =>
                                 handleInputChange("name", e.target.value)
                             }
@@ -109,7 +115,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="date"
-                            value={eventData.date}
+                            value={eventData.date || ""}
                             onChange={(e) =>
                                 handleInputChange("date", e.target.value)
                             }
@@ -132,7 +138,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.venue}
+                            value={eventData.venue || ""}
                             onChange={(e) =>
                                 handleInputChange("venue", e.target.value)
                             }
@@ -149,7 +155,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.time}
+                            value={eventData.time || ""}
                             onChange={(e) =>
                                 handleInputChange("time", e.target.value)
                             }
@@ -167,7 +173,7 @@ const EventDetails = () => {
                     Event Description
                 </label>
                 <textarea
-                    value={eventData.description}
+                    value={eventData.description || ""}
                     onChange={(e) =>
                         handleInputChange("description", e.target.value)
                     }
@@ -186,7 +192,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.ticketPrice}
+                            value={eventData.ticketPrice || ""}
                             onChange={(e) =>
                                 handleInputChange("ticketPrice", e.target.value)
                             }
@@ -205,7 +211,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.seatAmount}
+                            value={eventData.seatAmount || ""}
                             onChange={(e) =>
                                 handleInputChange("seatAmount", e.target.value)
                             }
@@ -222,7 +228,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.availableSeats}
+                            value={eventData.availableSeats || ""}
                             onChange={(e) =>
                                 handleInputChange(
                                     "availableSeats",
@@ -242,7 +248,7 @@ const EventDetails = () => {
                     <div className="relative">
                         <input
                             type="text"
-                            value={eventData.popularity}
+                            value={eventData.popularity || ""}
                             onChange={(e) =>
                                 handleInputChange("popularity", e.target.value)
                             }
@@ -301,7 +307,7 @@ const EventDetails = () => {
                         <div className="relative">
                             <input
                                 type="text"
-                                value={eventData.tags}
+                                value={eventData.tags || ""}
                                 onChange={(e) =>
                                     handleInputChange("tags", e.target.value)
                                 }
@@ -320,7 +326,7 @@ const EventDetails = () => {
                         <div className="relative">
                             <input
                                 type="text"
-                                value={eventData.expectedAttendance}
+                                value={eventData.expectedAttendance || ""}
                                 onChange={(e) =>
                                     handleInputChange(
                                         "expectedAttendance",
@@ -365,7 +371,7 @@ const EventDetails = () => {
                         </button>
                         <button
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-                            onClick={() => navigate("/attendee-insights/:id")}
+                            onClick={() => navigate(`/attendee-insights/${id}`)}
                         >
                             Attendee Insights
                         </button>

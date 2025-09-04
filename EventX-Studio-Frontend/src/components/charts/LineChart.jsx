@@ -9,11 +9,23 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
-const DashLineChart = () => {
+const DashLineChart = ({
+    data = [],
+    timeFrame = "Weekly",
+    currency = "LKR",
+}) => {
+    if (!data.length) return <p>No sales data</p>;
+
+    const totalSales = data.reduce((acc, curr) => acc + curr.amount, 0);
+    const processedData = data.map((item) => ({
+        ...item,
+        percentageShare: Number(((item.amount / totalSales) * 100).toFixed(1)),
+    }));
+
     // Configuration object approach
     const chartConfig = {
-        timeFrame: "Weekly",
-        currency: "LKR",
+        currency: currency,
+        timeFrame: timeFrame,
         colorScheme: {
             primary: "#ef4444",
             background: "#ffffff",
@@ -22,36 +34,14 @@ const DashLineChart = () => {
         },
     };
 
-    // Data with computed properties
-    const weeklyData = useMemo(() => {
-        const rawSales = [
-            { week: "Week 1", amount: 35000 },
-            { week: "Week 2", amount: 22000 },
-            { week: "Week 3", amount: 46000 },
-            { week: "Week 4", amount: 15000 },
-            { week: "Week 5", amount: 28000 },
-            { week: "Week 6", amount: 34000 },
-            { week: "Week 7", amount: 22500 },
-        ];
-
-        const totalSales = rawSales.reduce((acc, curr) => acc + curr.amount, 0);
-
-        return rawSales.map((item) => ({
-            ...item,
-            percentageShare: Number(
-                ((item.amount / totalSales) * 100).toFixed(1)
-            ),
-        }));
-    }, []);
-
     // Business metrics calculator
     const businessMetrics = useMemo(
         () => ({
-            revenue: weeklyData.reduce((sum, week) => sum + week.amount, 0),
+            revenue: processedData.reduce((sum, week) => sum + week.amount, 0),
             ticketsSold: 2438,
             eventsHosted: 32,
         }),
-        [weeklyData]
+        [processedData]
     );
 
     // Tooltip content generator
@@ -63,7 +53,7 @@ const DashLineChart = () => {
             <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                 <p className="text-gray-600">{label}</p>
                 <p className="text-red-500 font-semibold">
-                    {currentData.value.toLocaleString()} {chartConfig.currency}
+                    {currentData.value.toLocaleString()} {}
                 </p>
                 <p className="text-gray-500 text-sm">
                     {currentData.payload.percentageShare}%
@@ -217,7 +207,10 @@ const DashLineChart = () => {
 
             <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={weeklyData} margin={chartSettings.margins}>
+                    <LineChart
+                        data={processedData}
+                        margin={chartSettings.margins}
+                    >
                         <CartesianGrid {...chartSettings.gridStyle} />
                         <XAxis dataKey="week" {...chartSettings.axisStyle} />
                         <YAxis
