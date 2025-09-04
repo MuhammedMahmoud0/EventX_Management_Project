@@ -15,11 +15,11 @@ const seatMapRoutes = require("./routes/seatMapRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 const app = express();
-// app.use(
-//     cors({
-//         origin: "https://event-x-management-project.vercel.app/",
-//     })
-// );
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+    })
+);
 // // app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
