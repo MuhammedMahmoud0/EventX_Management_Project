@@ -15,20 +15,14 @@ const seatMapRoutes = require("./routes/seatMapRoutes");
 const userRoutes = require("./routes/userRoutes");
 
 const app = express();
+
 app.use(
     cors({
-        origin: "*", // or "*" for testing
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: [
-            "Origin",
-            "X-Requested-With",
-            "Content-Type",
-            "Accept",
-            "Authorization",
-        ],
+        origin: ["http://localhost:5173", "https://your-frontend-domain.com"],
+        credentials: true,
     })
 );
-// app.use(cors());
+
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
