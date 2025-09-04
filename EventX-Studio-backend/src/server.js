@@ -17,16 +17,18 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors());
-app.use(
-    cors({
-        origin: [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://event-x-management-project.vercel.app",
-        ], // Add your frontend URLs
-        credentials: true,
-    })
-);
+
+const corsOptions = {
+    origin: [
+        "http://localhost:5173", // Vite dev server
+        "http://localhost:3000", // Alternative dev port
+        "https://your-frontend-domain.vercel.app", // Add your production frontend URL when deployed
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200, // For legacy browser support
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+};
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
