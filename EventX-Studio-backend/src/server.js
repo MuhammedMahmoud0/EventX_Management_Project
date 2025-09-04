@@ -17,7 +17,7 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 app.use(
     cors({
-        origin: "https://event-x-management-project-front-jsikym0sr.vercel.app",
+        origin: "https://event-x-management-project.vercel.app/",
     })
 );
 // app.use(cors());
