@@ -18,7 +18,10 @@ const app = express();
 
 app.use(
     cors({
-        origin: ["http://localhost:5173", "https://your-frontend-domain.com"],
+        origin: [
+            "http://localhost:5173",
+            "https://https://event-x-management-project-isy9.vercel.app",
+        ],
         credentials: true,
     })
 );
