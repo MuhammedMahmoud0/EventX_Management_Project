@@ -10,7 +10,7 @@
 ---
 
 ## Live Demo
-- **Frontend**: [Event X Frontend](https://event-x-management-project-isy9-qqvyguln5.vercel.app)  
+- **Frontend**: [Event X Frontend](https://event-x-management-project-isy9-6bh7ri25z.vercel.app)  
 - **Backend API**: [Event X API](https://event-x-management-project.vercel.app/api)  
 
 ---
