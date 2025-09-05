@@ -55,7 +55,24 @@ const AdminDashboard = () => {
                     return acc;
                 }, {});
 
-                const colors = ["purple", "red", "green", "blue", "orange"];
+                const colors = [
+                    "#3b82f6", // blue
+                    "#ef4444", // red
+                    "#10b981", // emerald
+                    "#f59e0b", // amber
+                    "#8b5cf6", // violet
+                    "#06b6d4", // cyan
+                    "#84cc16", // lime
+                    "#f97316", // orange
+                    "#ec4899", // pink
+                    "#6366f1", // indigo
+                    "#14b8a6", // teal
+                    "#f43f5e", // rose
+                    "#a855f7", // purple
+                    "#22c55e", // green
+                    "#eab308", // yellow
+                    "#64748b", // slate
+                ];
 
                 setEventDistribution(
                     Object.entries(dist).map(([label, value], index) => ({
