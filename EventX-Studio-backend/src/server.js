@@ -23,6 +23,7 @@ app.use(
             "https://event-x-management-project-isy9.vercel.app",
             "https://event-x-management-project-isy9-qqvyguln5.vercel.app",
             "https://event-x-management-project-isy9-j4o1ibgo2.vercel.app",
+            "https://event-x-management-project-isy9-jcm02xajx.vercel.app",
         ],
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
