@@ -19,7 +19,6 @@
 Check out a quick demo of the application:
 
 [Click here to watch the demo video](./assets/video/video.mp4)
-*Replace `YOUR_VIDEO_ID` with your YouTube video ID.*
 
 ---
 
