@@ -25,6 +25,7 @@ app.use(
             "https://event-x-management-project-isy9-j4o1ibgo2.vercel.app",
             "https://event-x-management-project-isy9-jcm02xajx.vercel.app",
             "https://event-x-management-project-isy9-6bh7ri25z.vercel.app",
+            "https://eventx-studio.netlify.app",
         ],
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
