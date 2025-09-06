@@ -20,6 +20,7 @@ app.use(
     cors({
         origin: [
             "http://localhost:5173",
+            "https://event-x-management-project.vercel.app",
             "https://event-x-management-project-isy9.vercel.app",
             "https://event-x-management-project-isy9-qqvyguln5.vercel.app",
             "https://event-x-management-project-isy9-j4o1ibgo2.vercel.app",
