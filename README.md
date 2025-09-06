@@ -13,7 +13,7 @@
 ## Live Demo
 
 -   **Frontend**: [Event X Frontend](https://event-x-management-project-isy9-qqvyguln5.vercel.app)
--   **Frontend Alternative Link**: [Event X Frontend](https://eventx-studio.netlify.app)
+-   **Frontend Alternative Link**: [Event X Frontend](https://eventx-studio.netlify.app) `the netlify deployment (Alternative) doesn't need access request like the vercel but has some problems so try both`
 -   **Backend API**: [Event X API](https://event-x-management-project.vercel.app/api)
 
 ---
